@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, type ReactNode } from 'react'
 
 export interface TopoNode {
   id: string
   label: string
   sub?: string
   tone?: 'ok' | 'warn' | 'danger' | 'idle'
+  /** 平台 Logo 等 ReactNode：提供时替代中心色点渲染 */
+  icon?: ReactNode
 }
 
 export interface TopoEdge {
@@ -198,8 +200,14 @@ export default function TopologyViz({
           const color = TONE_COLOR[n.tone ?? 'idle']
           return (
             <g key={n.id}>
-              <circle cx={p.x} cy={p.y} r={16} fill={color} fillOpacity={0.18} stroke={color} strokeWidth={1.5} />
-              <circle cx={p.x} cy={p.y} r={5} fill={color} />
+              <circle cx={p.x} cy={p.y} r={16} fill={color} fillOpacity={0.14} stroke={color} strokeWidth={1.5} />
+              {n.icon ? (
+                <foreignObject x={p.x - 12} y={p.y - 12} width={24} height={24} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{n.icon}</div>
+                </foreignObject>
+              ) : (
+                <circle cx={p.x} cy={p.y} r={5} fill={color} />
+              )}
               {p.last ? (
                 <>
                   <text x={p.x + 26} y={p.y - 2} textAnchor="start" fontSize={12} fontWeight={600} fill="currentColor">

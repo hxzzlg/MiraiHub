@@ -1,10 +1,11 @@
-import { App as AntdApp, Button, Card, Col, InputNumber, Row, Space, Switch, Table, Tag, Tooltip, Typography } from 'antd'
-import { useCallback, useEffect, useState } from 'react'
+import { App as AntdApp, Button, Card, Col, message as antdMessage, Row, Space, Switch, Table, Tag, Tooltip, Typography } from 'antd'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../api/client'
 import { platformSpeed, type PlatformSpeedRow } from '../api/platforms'
 import { usePlatform } from '../context/PlatformContext'
 import PageHeader from '../components/PageHeader'
 import TopologyViz, { type TopoEdge, type TopoNode } from '../components/TopologyViz'
+import PlatformLogo from '../components/PlatformLogo'
 import { FMT_EMPTY, fmtCredit, fmtInt, fmtPct } from '../utils/format'
 
 interface GatewayConfig {
@@ -40,6 +41,8 @@ export default function GatewayPage() {
   const [speed, setSpeed] = useState<PlatformSpeedRow[]>([])
   const [loading, setLoading] = useState(false)
   const [burst, setBurst] = useState(0)
+  const dragIndexRef = useRef<number | null>(null)
+  const [dragOver, setDragOver] = useState<number | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -75,13 +78,22 @@ export default function GatewayPage() {
     }
   }
 
-  const toggleDisable = async (platform: string, disable: boolean) => {
+  /** 拖拽排序：把 from 位置的平台移到 to，priority 重排为 10/20/30…（仅 priority 策略） */
+  const moveOrder = async (from: number, to: number) => {
+    if (from < 0 || from === to || config?.strategy !== 'priority') return
+    const ids = order.map((o) => o.platform)
+    const [moved] = ids.splice(from, 1)
+    ids.splice(to, 0, moved)
+    const priority: Record<string, number> = {}
+    ids.forEach((id, i) => {
+      priority[id] = (i + 1) * 10
+    })
     try {
-      await api(`/api/gateway/${disable ? 'disable' : 'enable'}`, { method: 'POST', body: { platform, reason: disable ? '控制台手动禁用' : '' } })
-      message.success(disable ? `已禁用 ${platform}` : `已启用 ${platform}`)
+      await api('/api/gateway/config', { method: 'PUT', body: { priority } })
+      antdMessage.success('优先级已更新')
       void load()
     } catch (e) {
-      message.error((e as Error).message)
+      antdMessage.error((e as Error).message)
     }
   }
 
@@ -94,6 +106,7 @@ export default function GatewayPage() {
       label: o.label || o.platform,
       tone: o.disabled ? 'danger' : o.usable > 0 ? 'ok' : 'warn',
       sub: o.disabled ? '已禁用' : `${o.usable} 可用`,
+      icon: <PlatformLogo id={o.platform} size={20} />,
     })) as TopoNode[],
   ]
   const maxUsable = Math.max(1, ...order.map((o) => o.usable))
@@ -167,14 +180,38 @@ export default function GatewayPage() {
           </Card>
         </Col>
         <Col xs={24} xl={10}>
-          <Card size="small" title="当前调度顺序">
+          <Card size="small" title="当前调度顺序" extra={config?.strategy === 'priority' ? <Typography.Text type="secondary" style={{ fontSize: 12 }}>拖动行调整优先级</Typography.Text> : <Typography.Text type="secondary" style={{ fontSize: 12 }}>切换到「优先级」策略后可拖动排序</Typography.Text>}>
             <Table
               size="small"
               rowKey="platform"
               loading={loading}
               dataSource={order}
               pagination={false}
+              onRow={config?.strategy === 'priority' ? (_r, idx) => {
+                const i = idx ?? -1
+                return {
+                  draggable: true,
+                  onDragStart: () => {
+                    dragIndexRef.current = i
+                  },
+                  onDragOver: (e: React.DragEvent) => {
+                    e.preventDefault()
+                    if (dragOver !== i) setDragOver(i)
+                  },
+                  onDrop: () => void moveOrder(dragIndexRef.current ?? -1, i),
+                  onDragEnd: () => {
+                    dragIndexRef.current = null
+                    setDragOver(null)
+                  },
+                  style: dragOver === i ? { borderTop: '2px solid #2E9BFF' } : undefined,
+                }
+              } : undefined}
               columns={[
+                {
+                  title: '',
+                  width: 30,
+                  render: () => (config?.strategy === 'priority' ? <Typography.Text type="secondary" style={{ cursor: 'grab' }}>⠿</Typography.Text> : null),
+                },
                 { title: '#', width: 40, render: (_, __, i) => <span className="num">{i + 1}</span> },
                 { title: '平台', dataIndex: 'label', render: (v, r) => (r.disabled ? <Typography.Text type="secondary">{v}</Typography.Text> : <Typography.Text strong>{v}</Typography.Text>) },
                 { title: '原因', dataIndex: 'reason', ellipsis: true },
@@ -205,53 +242,7 @@ export default function GatewayPage() {
             />
           </Card>
         </Col>
-        <Col xs={24} xl={12}>
-          <Card size="small" title="平台优先级与启停">
-            <Space orientation="vertical" size={8} style={{ width: '100%' }}>
-              {(config?.platforms ?? []).map((p) => {
-                const isDisabled = !!config?.disabled?.[p.id]
-                return (
-                  <Row key={p.id} align="middle" gutter={8}>
-                    <Col flex="auto">
-                      <Typography.Text strong>{p.label}</Typography.Text>
-                      {isDisabled && (
-                        <Tooltip title={config?.disabled?.[p.id]?.reason}>
-                          <Tag color="error" style={{ marginLeft: 8 }}>
-                            已禁用
-                          </Tag>
-                        </Tooltip>
-                      )}
-                    </Col>
-                    <Col>
-                      <InputNumber
-                        size="small"
-                        min={0}
-                        max={9999}
-                        value={config?.priority?.[p.id] ?? 0}
-                        onBlur={(e) => {
-                          const v = Number((e.target as HTMLInputElement).value)
-                          if (!Number.isNaN(v) && v !== (config?.priority?.[p.id] ?? 0)) {
-                            void saveConfig({ priority: { ...(config?.priority ?? {}), [p.id]: v } })
-                          }
-                        }}
-                        style={{ width: 90 }}
-                        prefix="优先级"
-                      />
-                    </Col>
-                    <Col>
-                      <Switch
-                        checked={!isDisabled}
-                        checkedChildren="启用"
-                        unCheckedChildren="禁用"
-                        onChange={(v) => void toggleDisable(p.id, !v)}
-                      />
-                    </Col>
-                  </Row>
-                )
-              })}
-            </Space>
-          </Card>
-        </Col>
+
       </Row>
     </Space>
   )

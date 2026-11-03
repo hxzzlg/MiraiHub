@@ -1,5 +1,5 @@
 import { App as AntdApp, Button, Input, Modal, Space, Table, Tag, Tooltip, Typography } from 'antd'
-import { CloudDownloadOutlined, KeyOutlined, ImportOutlined, LoginOutlined, PieChartOutlined, ScanOutlined, ThunderboltOutlined } from '@ant-design/icons'
+import { CloudDownloadOutlined, KeyOutlined, ImportOutlined, LoginOutlined, PieChartOutlined, RocketOutlined, ScanOutlined, ThunderboltOutlined } from '@ant-design/icons'
 import { useState } from 'react'
 import type { PlatformSpec } from '../api/platforms'
 import {
@@ -14,6 +14,7 @@ import DeviceAuthModal from './DeviceAuthModal'
 import { usePlatform } from '../context/PlatformContext'
 
 const ACTION_LABELS: Record<string, { label: string; icon: React.ReactNode; tip?: string }> = {
+  growth: { label: '成长计划', icon: <RocketOutlined />, tip: '在浏览器小窗中打开' },
   'begin-auth': { label: '授权接入', icon: <LoginOutlined />, tip: '浏览器/设备授权登录' },
   scan: { label: '扫描本机', icon: <ScanOutlined />, tip: '扫描本机客户端登录态' },
   import: { label: '导入本机', icon: <ImportOutlined />, tip: '把扫描到的凭证导入号池' },
@@ -124,7 +125,7 @@ export default function PlatformActionsBar({ spec, onChanged }: { spec?: Platfor
 
   return (
     <Space wrap size={8}>
-      {actions.map((a) => {
+      {(storage === 'workbuddy' ? [...actions, 'growth'] : actions).map((a) => {
         const meta = ACTION_LABELS[a]
         if (!meta) return null
         return (
@@ -140,6 +141,7 @@ export default function PlatformActionsBar({ spec, onChanged }: { spec?: Platfor
                 else if (a === 'checkin') void doCheckin()
                 else if (a === 'usage') doUsage()
                 else if (a === 'web-cookie') setCookieOpen(true)
+                else if (a === 'growth') window.open(`${window.location.origin}/admin#/growth-popup`, 'mh-growth', 'width=1120,height=780,noopener')
               }}
             >
               {meta.label}

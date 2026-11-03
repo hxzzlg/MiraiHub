@@ -62,7 +62,7 @@ interface HeatCell {
   has_new_buddy?: boolean
 }
 
-export default function GrowthPage() {
+export default function GrowthPage({ popup = false }: { popup?: boolean } = {}) {
   const { message, modal } = AntdApp.useApp()
   const [accounts, setAccounts] = useState<AccountBrief[]>([])
   const [aid, setAid] = useState<number | null>(null)
@@ -195,7 +195,7 @@ export default function GrowthPage() {
     <Space orientation="vertical" size={16} style={{ width: '100%' }}>
       <PageHeader
         title="成长计划"
-        description={snap?.snapshot?.checked_at ? `快照更新于 ${relTime(snap.snapshot.checked_at)}` : undefined}
+        description={popup ? '独立小窗 · 自动跟随平台口径' : snap?.snapshot?.checked_at ? `快照更新于 ${relTime(snap.snapshot.checked_at)}` : undefined}
         actions={
           <Space>
             <Select

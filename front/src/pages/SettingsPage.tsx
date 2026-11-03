@@ -27,8 +27,6 @@ export default function SettingsPage() {
   const [group, setGroup] = useState('')
   const [dirty, setDirty] = useState<Record<string, unknown>>({})
   const [saving, setSaving] = useState(false)
-  const [invitation, setInvitation] = useState('')
-  const [invitationEnabled, setInvitationEnabled] = useState(false)
   const [pwdForm] = Form.useForm()
   const [pwdOpen, setPwdOpen] = useState(false)
 
@@ -40,13 +38,6 @@ export default function SettingsPage() {
       if (g) setGroup((prev) => prev || g)
     } catch (e) {
       message.error((e as Error).message || '运行配置加载失败')
-    }
-    try {
-      const inv = await api<{ invite_code: string; enabled: boolean }>('/api/settings/invitation')
-      setInvitation(inv.invite_code ?? '')
-      setInvitationEnabled(inv.enabled ?? false)
-    } catch {
-      /* 邀请设置可选 */
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -96,15 +87,6 @@ export default function SettingsPage() {
       message.error((e as Error).message)
     } finally {
       setSaving(false)
-    }
-  }
-
-  const saveInvitation = async () => {
-    try {
-      await api('/api/settings/invitation', { method: 'PUT', body: { value: invitationEnabled ? invitation : null } })
-      message.success('邀请绑定已保存')
-    } catch (e) {
-      message.error((e as Error).message)
     }
   }
 
@@ -208,24 +190,6 @@ export default function SettingsPage() {
         </Space>
       </Card>
 
-      <Card size="small" title="WorkBuddy 邀请绑定">
-        <Space orientation="vertical" size={8}>
-          <Space>
-            <Switch checked={invitationEnabled} onChange={setInvitationEnabled} />
-            <Input
-              style={{ width: 320 }}
-              placeholder="官方邀请码（启用后注册时自动绑定）"
-              value={invitation}
-              onChange={(e) => setInvitation(e.target.value)}
-              disabled={!invitationEnabled}
-            />
-            <Button onClick={() => void saveInvitation()}>保存</Button>
-          </Space>
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            自助注册（/join）需要的邀请凭证在"逆向产物 → 注册凭证"之外由后端管理；此处仅配置官方邀请绑定。
-          </Typography.Text>
-        </Space>
-      </Card>
 
       <Row gutter={[12, 12]}>
         <Col xs={24} md={12}>

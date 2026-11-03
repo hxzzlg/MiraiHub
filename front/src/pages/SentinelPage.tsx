@@ -6,6 +6,7 @@ import { usePlatform } from '../context/PlatformContext'
 import PageHeader from '../components/PageHeader'
 import StatCards from '../components/StatCard'
 import TopologyViz, { type TopoEdge, type TopoNode } from '../components/TopologyViz'
+import PlatformLogo from '../components/PlatformLogo'
 import { FMT_EMPTY, fmtInt, fmtNum, relTime } from '../utils/format'
 
 interface TrafficRow {
@@ -123,6 +124,7 @@ export default function SentinelPage() {
       label: p.label || p.platform,
       tone: p.requests === 0 ? 'idle' : p.error + p.timeout > p.ok ? 'danger' : p.error + p.timeout > 0 ? 'warn' : 'ok',
       sub: `${p.ok}/${p.requests}`,
+      icon: <PlatformLogo id={p.platform} size={20} />,
     })) as TopoNode[],
   ]
   const edges: TopoEdge[] = [

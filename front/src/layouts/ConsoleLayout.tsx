@@ -19,7 +19,6 @@ import {
   MoonOutlined,
   CloseOutlined,
   RobotOutlined,
-  RocketOutlined,
   SaveOutlined,
   SettingOutlined,
   SafetyOutlined,
@@ -69,7 +68,6 @@ const NAV_GROUPS: { label: string; children: NavItem[] }[] = [
       { key: 'accounts', label: '账号池', icon: <TeamOutlined /> },
       { key: 'credits', label: '积分到期', icon: <ClockCircleOutlined /> },
       { key: 'journal', label: '积分流水', icon: <TransactionOutlined /> },
-      { key: 'growth', label: '成长计划', icon: <RocketOutlined /> },
     ],
   },
   {

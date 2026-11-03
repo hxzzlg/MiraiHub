@@ -61,6 +61,17 @@ function AppRoutes() {
           </Suspense>
         }
       />
+      {/* 成长计划浏览器小窗：无侧栏/顶栏的独立壳 */}
+      <Route
+        path="/growth-popup"
+        element={
+          <RequireAuth>
+            <Suspense fallback={<PageFallback />}>
+              <GrowthPage popup />
+            </Suspense>
+          </RequireAuth>
+        }
+      />
       <Route
         element={
           <RequireAuth>

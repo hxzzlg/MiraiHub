@@ -1,6 +1,8 @@
-import { Card, Col, Row, Segmented, Space, Table, Tag, Typography } from 'antd'
-import { CheckCircleFilled } from '@ant-design/icons'
+import { Button, Card, Col, Flex, Input, Modal, Row, Segmented, Space, Switch, Table, Tag, Tooltip, Typography } from 'antd'
+import { CheckCircleFilled, GiftOutlined } from '@ant-design/icons'
+import { api } from '../api/client'
 import { useCallback, useEffect, useState } from 'react'
+import { App as AntdApp } from 'antd'
 import { platformOverview, platformSpeed, type PlatformOverviewCard, type PlatformSpeedRow } from '../api/platforms'
 import { usePlatform } from '../context/PlatformContext'
 import PageHeader from '../components/PageHeader'
@@ -12,7 +14,12 @@ const TONE_COLOR: Record<string, string> = { brand: '#2E9BFF', warn: '#d9930d' }
 
 export default function PlatformsPage() {
   const { platforms, current, select, platformKey } = usePlatform()
+  const { message } = AntdApp.useApp()
   const [cards, setCards] = useState<PlatformOverviewCard[]>([])
+  const [inviteOpen, setInviteOpen] = useState(false)
+  const [inviteCode, setInviteCode] = useState('')
+  const [inviteEnabled, setInviteEnabled] = useState(false)
+  const [disabledMap, setDisabledMap] = useState<Record<string, { at: number; reason: string }>>({})
   const [bench, setBench] = useState<PlatformSpeedRow[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -25,6 +32,12 @@ export default function PlatformsPage() {
       ])
       setCards((ov?.cards as PlatformOverviewCard[]) ?? [])
       setBench(sp?.items ?? [])
+      try {
+        const gw = await api<{ disabled?: Record<string, { at: number; reason: string }> }>('/api/gateway/config')
+        setDisabledMap(gw?.disabled ?? {})
+      } catch {
+        /* 网关配置可选 */
+      }
     } finally {
       setLoading(false)
     }
@@ -35,12 +48,56 @@ export default function PlatformsPage() {
     void load()
   }, [load, platformKey])
 
+  const loadInvite = async () => {
+    try {
+      const r = await api<{ invite_code: string; enabled: boolean }>('/api/settings/invitation')
+      setInviteCode(r.invite_code ?? '')
+      setInviteEnabled(r.enabled ?? false)
+    } catch {
+      /* 可选功能 */
+    }
+  }
+
+  const saveInvite = async () => {
+    try {
+      await api('/api/settings/invitation', { method: 'PUT', body: { value: inviteEnabled ? inviteCode : null } })
+      message.success('邀请绑定已保存')
+      setInviteOpen(false)
+    } catch (e) {
+      message.error((e as Error).message)
+    }
+  }
+
+  const togglePlatform = async (platformId: string, enable: boolean) => {
+    try {
+      await api(`/api/gateway/${enable ? 'enable' : 'disable'}`, {
+        method: 'POST',
+        body: { platform: platformId, reason: enable ? '' : '平台管理页手动禁用' },
+      })
+      message.success(enable ? `已启用 ${platformId}` : `已禁用 ${platformId}`)
+      const gw = await api<{ disabled?: Record<string, { at: number; reason: string }> }>('/api/gateway/config')
+      setDisabledMap(gw?.disabled ?? {})
+    } catch (e) {
+      message.error((e as Error).message)
+    }
+  }
+
   const spec = platforms.find((p) => p.id === current.platform)
   const realmOptions = (spec?.realms ?? []).map((r) => ({ label: r.label, value: r.key }))
 
   return (
     <Space orientation="vertical" size={16} style={{ width: '100%' }}>
-      <PageHeader title="平台管理" description={spec?.notes || '切换统计与调度口径'} />
+      <PageHeader
+        title="平台管理"
+        description={spec?.notes || '切换统计与调度口径'}
+        actions={
+          <Tooltip title="官方邀请绑定（注册时自动绑定到该邀请）">
+            <Button icon={<GiftOutlined />} onClick={() => { void loadInvite(); setInviteOpen(true) }}>
+              邀请绑定
+            </Button>
+          </Tooltip>
+        }
+      />
       <PlatformActionsBar spec={spec} onChanged={() => void load()} />
 
       {/* 平台卡片墙 */}
@@ -56,6 +113,7 @@ export default function PlatformsPage() {
                   onClick={() => select(p.id, p.realm ?? p.realms?.find((r) => r.default)?.key ?? p.realms?.[0]?.key ?? null)}
                   style={active ? { borderColor: '#2E9BFF' } : undefined}
                 >
+                  <Flex align="center" justify="space-between" gap={6}>
                   <Space align="center">
                     <PlatformLogo id={p.id} icon={p.icon} size={36} />
                     <div>
@@ -68,6 +126,17 @@ export default function PlatformsPage() {
                       </Typography.Text>
                     </div>
                   </Space>
+                  <Tooltip title={disabledMap[p.id] ? `已禁用：${disabledMap[p.id]?.reason || '—'}` : '调度启用中'}>
+                    <Switch
+                      size="small"
+                      checked={!disabledMap[p.id]}
+                      onClick={(v, e) => {
+                        e.stopPropagation()
+                        void togglePlatform(p.id, v)
+                      }}
+                    />
+                  </Tooltip>
+                  </Flex>
                 </Card>
               </Col>
             )
@@ -132,6 +201,31 @@ export default function PlatformsPage() {
           ]}
         />
       </Card>
+
+      <Modal
+        title="WorkBuddy 官方邀请绑定"
+        open={inviteOpen}
+        onCancel={() => setInviteOpen(false)}
+        onOk={() => void saveInvite()}
+        okText="保存"
+        width={480}
+      >
+        <Space orientation="vertical" size={8} style={{ width: '100%' }}>
+          <Space align="center">
+            <Switch checked={inviteEnabled} onChange={setInviteEnabled} />
+            <Input
+              style={{ width: 280 }}
+              placeholder="官方邀请码（启用后注册时自动绑定）"
+              value={inviteCode}
+              onChange={(e) => setInviteCode(e.target.value)}
+              disabled={!inviteEnabled}
+            />
+          </Space>
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            自助注册（/join）所需凭证由后台独立管理；此处仅配置官方邀请绑定。
+          </Typography.Text>
+        </Space>
+      </Modal>
     </Space>
   )
 }
