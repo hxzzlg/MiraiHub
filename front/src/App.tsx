@@ -1,5 +1,5 @@
 import { Suspense, lazy } from 'react'
-import { App as AntdApp, ConfigProvider, Spin } from 'antd'
+import { App as AntdApp, ConfigProvider, Flex, Spin, theme as antdTheme } from 'antd'
 import zhCN from 'antd/locale/zh_CN'
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { ThemeProvider, useThemeMode } from './context/ThemeContext'
@@ -35,6 +35,16 @@ const MaintenancePage = lazy(() => import('./pages/MaintenancePage'))
 const AppSourcePage = lazy(() => import('./pages/AppSourcePage'))
 const AndroidSettingsPage = lazy(() => import('./pages/AndroidSettingsPage'))
 
+/** 无壳小窗外壳：跟随主题的布局背景（popup 无 Layout，需自行铺底色） */
+function PopupShell({ children }: { children: React.ReactNode }) {
+  const { token } = antdTheme.useToken()
+  return (
+    <Flex vertical style={{ minHeight: '100vh', background: token.colorBgLayout, padding: 16 }}>
+      {children}
+    </Flex>
+  )
+}
+
 function PageFallback() {
   return (
     <div style={{ display: 'flex', justifyContent: 'center', padding: '120px 0' }}>
@@ -67,7 +77,9 @@ function AppRoutes() {
         element={
           <RequireAuth>
             <Suspense fallback={<PageFallback />}>
-              <GrowthPage popup />
+              <PopupShell>
+                <GrowthPage popup />
+              </PopupShell>
             </Suspense>
           </RequireAuth>
         }

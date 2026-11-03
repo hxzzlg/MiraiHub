@@ -87,18 +87,15 @@ export default function PlatformsPage() {
 
   return (
     <Space orientation="vertical" size={16} style={{ width: '100%' }}>
-      <PageHeader
-        title="平台管理"
-        description={spec?.notes || '切换统计与调度口径'}
-        actions={
-          <Tooltip title="官方邀请绑定（注册时自动绑定到该邀请）">
-            <Button icon={<GiftOutlined />} onClick={() => { void loadInvite(); setInviteOpen(true) }}>
-              邀请绑定
-            </Button>
-          </Tooltip>
-        }
-      />
-      <PlatformActionsBar spec={spec} onChanged={() => void load()} />
+      <PageHeader title="平台管理" description={spec?.notes || '切换统计与调度口径'} />
+      <Space wrap size={8} align="center">
+        <PlatformActionsBar spec={spec} onChanged={() => void load()} />
+        <Tooltip title="官方邀请绑定（注册时自动绑定到该邀请）">
+          <Button icon={<GiftOutlined />} onClick={() => { void loadInvite(); setInviteOpen(true) }}>
+            邀请绑定
+          </Button>
+        </Tooltip>
+      </Space>
 
       {/* 平台卡片墙 */}
       <Card size="small" title="平台">
