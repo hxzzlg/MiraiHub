@@ -1,0 +1,26 @@
+/* 全局极少量样式：仅 Reset 与排版辅助，不承载任何布局/外观（外观全部由 antd 组件与主题 token 负责） */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 表格/日志内数字对齐（纯排版，非布局） */
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 智能体流式输出光标（纯排版动画） */
+.agent-caret {
+  animation: blink 1s steps(2, start) infinite;
+}
+@keyframes blink {
+  to {
+    visibility: hidden;
+  }
+}
