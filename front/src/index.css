@@ -1,0 +1,72 @@
+/* 全局极少量样式：仅 Reset 与排版辅助，不承载任何布局/外观（外观全部由 antd 组件与主题 token 负责） */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 表格/日志内数字对齐（纯排版，非布局） */
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 智能体流式输出光标（纯排版动画） */
+.agent-caret {
+  animation: blink 1s steps(2, start) infinite;
+}
+@keyframes blink {
+  to {
+    visibility: hidden;
+  }
+}
+
+/* ===== 滚动条样式 ===== */
+/* 全局：细半透明（替代默认粗黑滚动条） */
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(128, 128, 128, 0.35);
+  border-radius: 3px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(128, 128, 128, 0.6);
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(128, 128, 128, 0.35) transparent;
+}
+
+/* 侧栏导航：隐藏滚动条（滚轮滚动能力保留） */
+.console-sider {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.console-sider::-webkit-scrollbar {
+  display: none;
+}
+
+/* ===== 移动端适配 ===== */
+/* Modal 在窄屏不溢出 */
+.ant-modal {
+  max-width: calc(100vw - 24px);
+}
+@media (max-width: 768px) {
+  .ant-modal {
+    margin: 12px auto;
+    top: 24px;
+  }
+  /* 页面内边距收窄 */
+  .ant-layout-content {
+    padding: 10px !important;
+  }
+}

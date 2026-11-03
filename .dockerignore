@@ -27,3 +27,7 @@ private
 internal
 research
 evidence
+
+# ===== 前端构建上下文 =====
+front/node_modules
+front/dist

@@ -7,7 +7,7 @@ from pathlib import Path
 from fastapi import Depends, FastAPI, Form, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
-from fastapi.staticfiles import StaticFiles
+
 from pydantic import BaseModel, Field
 
 from admin.config import settings
@@ -90,7 +90,22 @@ try:
 except Exception:  # pragma: no cover - 降级分支
     _CONVERTER_EMBEDDED = False
 
-STATIC_DIR = Path(__file__).resolve().parent / "static"
+import sys
+
+
+def _front_dist() -> Path:
+    """Vite 前端构建产物目录（front/dist）。
+
+    源码运行时在仓库根 front/dist；PyInstaller 打包后由 spec 把
+    front/dist 放进 _MEIPASS/front/dist。
+    """
+    base = getattr(sys, "_MEIPASS", None)
+    if base:
+        return Path(base) / "front" / "dist"
+    return Path(__file__).resolve().parent.parent / "front" / "dist"
+
+
+FRONT_DIST = _front_dist()
 
 #: 文档路由常挂、由中间件实时门禁（后台「运行配置」切换 ENABLE_DOCS
 #: 即时生效）。默认关闭 —— 关闭时对外表现与不挂路由完全一致（404）。
@@ -548,28 +563,16 @@ def index_redirect():
     return RedirectResponse(url="/admin")
 
 
-CONSOLE_DIR = Path(__file__).resolve().parent / "console"
-#: 会话 Cookie 名。控制台本体在 admin/console/（**不经** /static 暴露），
-#: 只有携带有效会话 Cookie 的请求才能拿到 —— 未登录的访客只会看到
-#: static/login.html 这个中性壳页，HTML 源码里不再出现任何产品与内部实现信息。
+#: 会话 Cookie 名。管理 API 仍以 X-Admin-Token 头 / admin_session Cookie 双通道鉴权；
+#: SPA 本体（front/dist）改为公开下发 —— 登录页内置在 SPA 里（React 路由 /login），
+#: JS 产物不含任何密钥，真正的门禁在 API 层。
 _ADMIN_COOKIE = "admin_session"
 
 
 def _local_runtime() -> bool:
+    """桌面 / 安卓本地壳运行时（免登录通道依赖此标记）。"""
     return (os.getenv("WORKBUDDY_DESKTOP") == "1"
             or os.getenv("WORKBUDDY_ANDROID") == "1")
-
-
-def _console_allowed(request: Request) -> bool:
-    """是否向该请求下发完整控制台：本地运行时，或带有效会话 Cookie。"""
-    if _local_runtime():
-        return True
-    from admin.security import verify_admin_token
-    try:
-        verify_admin_token(request.cookies.get(_ADMIN_COOKIE))
-        return True
-    except Exception:
-        return False
 
 
 def _admin_cookie_params(request: Request, max_age: int):
@@ -582,16 +585,13 @@ def _admin_cookie_params(request: Request, max_age: int):
 @app.get("/admin")
 @app.get("/admin/")
 def admin_index(request: Request):
-    """登录门禁：有会话 Cookie → 完整控制台；否则只给中性登录壳。"""
-    if _console_allowed(request):
-        index = CONSOLE_DIR / "index.html"
-        # 兼容旧打包布局（控制台仍在 static/ 的桌面/移动端产物）。
-        if not index.is_file() and (STATIC_DIR / "index.html").is_file():
-            return HTMLResponse(_console_shell(STATIC_DIR / "index.html"),
-                                headers={"Cache-Control": "no-store, no-cache, must-revalidate"})
-        return HTMLResponse(_console_shell(index),
-                            headers={"Cache-Control": "no-store, no-cache, must-revalidate"})
-    return FileResponse(STATIC_DIR / "login.html",
+    """SPA 入口：始终下发 front/dist/index.html（登录页内置在 SPA 中）。
+
+    保留 console-authed 注入：已持有效会话 Cookie 时首帧即带标记，
+    SPA 可用它跳过一次本地 token 校验的闪烁。
+    """
+    index = FRONT_DIST / "index.html"
+    return HTMLResponse(_console_shell(index),
                         headers={"Cache-Control": "no-store, no-cache, must-revalidate"})
 
 
@@ -633,15 +633,14 @@ def _console_shell(path) -> str:
 
 
 @app.get("/admin/assets/{file_path:path}")
-def console_asset(file_path: str, request: Request):
-    """控制台私有静态资源（admin/console/*）。无会话一律 404，不暴露存在性。"""
-    if not _console_allowed(request):
-        raise HTTPException(status_code=404)
-    root = CONSOLE_DIR.resolve()
-    target = (root / file_path).resolve()
-    if not str(target).startswith(str(root) + os.sep) or not target.is_file():
-        raise HTTPException(status_code=404)
-    return FileResponse(target)
+def console_asset(file_path: str):
+    """前端构建产物（Vite base=/admin/ + 默认 assetsDir → URL /admin/assets/x ↔ dist/assets/x）。"""
+    root = FRONT_DIST.resolve()
+    for rel in (file_path, f"assets/{file_path}"):
+        target = (root / rel).resolve()
+        if str(target).startswith(str(root) + os.sep) and target.is_file():
+            return FileResponse(target)
+    raise HTTPException(status_code=404)
 
 
 @app.get("/join")
@@ -662,14 +661,13 @@ def join_index(request: Request, db: Session = Depends(get_db)):
     if not join_invite.has_any_invite(db):
         # 入口未开通：与"页面不存在"表现一致，不泄露自助注册的存在。
         raise HTTPException(status_code=404, detail="页面不存在")
-    return FileResponse(STATIC_DIR / "join.html")
+    return FileResponse(FRONT_DIST / "join.html")
 
 
 import mimetypes
 # Windows registry MIME mappings can override JS/CSS and fail under nosniff.
 for _suffix, _mime in {".js": "application/javascript", ".css": "text/css", ".svg": "image/svg+xml"}.items():
     mimetypes.add_type(_mime, _suffix)
-app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 # ============================================================================
 # /gw 内嵌 converter 网关 —— **已下线**
