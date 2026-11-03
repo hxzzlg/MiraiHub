@@ -399,8 +399,21 @@ export default function LogsPage() {
             {
               title: '结果',
               dataIndex: 'error_kind',
-              width: 100,
-              render: (v: string) => (v ? <Tag color="error">{v}</Tag> : <Tag color="success">成功</Tag>),
+              width: 120,
+              render: (v: string) => {
+                if (!v || v === 'success' || v === 'ok') return <Tag color="success">成功</Tag>
+                // 常见错误码 → 人类可读
+                const labels: Record<string, string> = {
+                  key_quota_exceeded: '额度用尽',
+                  key_disabled: 'Key 已停用',
+                  no_account: '无可用账号',
+                  upstream_error: '上游错误',
+                  timeout: '超时',
+                  rate_limited: '限流',
+                  client_error: '客户端错误',
+                }
+                return <Tag color="error">{labels[v] ?? v}</Tag>
+              },
             },
           ]}
         />
@@ -506,7 +519,7 @@ function LogDetailModal({ row, onClose, captureEnabled }: { row: LogRow | null; 
           <Col span={8}><Typography.Text type="secondary" style={{ fontSize: 12 }}>模型 / 平台</Typography.Text><div>{row.model} · {row.platform}</div></Col>
           <Col span={8}><Typography.Text type="secondary" style={{ fontSize: 12 }}>Tokens</Typography.Text><div className="num">{fmtK(row.total_tokens)}（输入 {fmtK(row.prompt_tokens)} / 输出 {fmtK(row.completion_tokens)}）</div></Col>
           <Col span={8}><Typography.Text type="secondary" style={{ fontSize: 12 }}>积分 / 耗时</Typography.Text><div className="num">{fmtCreditExact(row.credits)} · 总 {fmtDuration(row.latency_ms)}</div></Col>
-          <Col span={8}><Typography.Text type="secondary" style={{ fontSize: 12 }}>结果</Typography.Text><div>{row.error_kind ? <Tag color="error">{row.error_kind}</Tag> : <Tag color="success">成功</Tag>}</div></Col>
+          <Col span={8}><Typography.Text type="secondary" style={{ fontSize: 12 }}>结果</Typography.Text><div>{!row.error_kind || row.error_kind === 'success' || row.error_kind === 'ok' ? <Tag color="success">成功</Tag> : <Tag color="error">{row.error_kind}</Tag>}</div></Col>
         </Row>
 
         {/* 诊断 JSON */}

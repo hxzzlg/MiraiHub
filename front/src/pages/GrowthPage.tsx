@@ -1,9 +1,9 @@
-import { App as AntdApp, Avatar, Button, Card, Col, Listy, Modal, Row, Select, Space, Spin, Table, Tabs, Tag, Typography } from 'antd'
+import { App as AntdApp, Avatar, Button, Card, Col, Flex, Listy, Modal, Row, Select, Space, Spin, Table, Tabs, Tag, Tooltip, Typography } from 'antd'
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api/client'
 import PageHeader from '../components/PageHeader'
 import StatCards from '../components/StatCard'
-import { FMT_EMPTY, fmtCredit, fmtInt, relTime } from '../utils/format'
+import { FMT_EMPTY, fmtCredit, fmtInt, fmtTime, relTime } from '../utils/format'
 
 interface AccountBrief {
   id: number
@@ -182,7 +182,8 @@ export default function GrowthPage({ popup = false }: { popup?: boolean } = {}) 
 
   const heatCells = heatmap?.cells ?? []
   const maxScore = Math.max(1, ...heatCells.map((c) => c.score))
-  const cols = 14
+  // 横板：约 7 行，列数随天数自适应（宽度铺开而不是竖成长条）
+  const cols = Math.max(14, Math.ceil(heatCells.length / 7))
 
   const loadMoreRecords = async () => {
     if (!aid || !records.length) return
@@ -262,7 +263,7 @@ export default function GrowthPage({ popup = false }: { popup?: boolean } = {}) 
             items={[
               { title: '连续登录', value: fmtInt(streak?.streak?.days), suffix: '天', hint: `本月 ${fmtInt(streak?.streak?.month_total_days)} 天 · 下一档还需 ${fmtInt(streak?.streak?.next_tier_remaining)} 天` },
               { title: '能量值', value: fmtCredit(energy?.balance), hint: `累计获得 ${fmtCredit(energy?.total_earned)}` },
-              { title: '今日活跃', value: heatmap?.today?.status_text || (heatmap?.today?.is_active ? '已活跃' : '未活跃'), tone: heatmap?.today?.is_active ? 'success' : 'warning' },
+              { title: '今日活跃', value: heatmap?.today?.is_active ? '已活跃' : '未活跃', suffix: heatmap?.today?.score !== undefined ? `${fmtInt(heatmap?.today?.score)} 分` : undefined, tone: heatmap?.today?.is_active ? 'success' : 'warning' },
               { title: '抽奖机会', value: fmtInt(lottery?.chances), suffix: '次' },
             ]}
           />
@@ -285,15 +286,26 @@ export default function GrowthPage({ popup = false }: { popup?: boolean } = {}) 
               <Card size="small" style={{ height: '100%' }} title="Buddy 宠物">
                 {buddy?.buddy ? (
                   <>
-                    <Space align="center">
-                      <Avatar size={40} src={buddy.buddy.thumbnail_url || undefined} />
-                      <div>
-                        <Typography.Text strong>{buddy.buddy.name}</Typography.Text>
-                        <Typography.Text type="secondary" style={{ display: 'block', fontSize: 12 }}>
-                          {buddy.buddy.rarity || ''} {buddy.buddy.personality || ''}
-                        </Typography.Text>
+                    <Flex align="center" gap={14}>
+                      <img
+                        src={buddy.buddy.thumbnail_url || undefined}
+                        alt={buddy.buddy.name}
+                        style={{ width: 110, height: 110, objectFit: 'contain', borderRadius: 10, background: 'rgba(128,128,128,0.06)' }}
+                      />
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <Typography.Text strong style={{ fontSize: 15 }}>{buddy.buddy.name}</Typography.Text>
+                        <div style={{ marginTop: 4 }}>
+                          {buddy.buddy.rarity && <Tag color="geekblue">{buddy.buddy.rarity}</Tag>}
+                        </div>
+                        {buddy.buddy.personality && (
+                          <Tooltip title={buddy.buddy.personality}>
+                            <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 4 }} ellipsis>
+                              {buddy.buddy.personality}
+                            </Typography.Text>
+                          </Tooltip>
+                        )}
                       </div>
-                    </Space>
+                    </Flex>
                     {buddies?.count ? (
                     <Button
                       block
@@ -423,17 +435,33 @@ export default function GrowthPage({ popup = false }: { popup?: boolean } = {}) 
                 {heatCells.map((c) => {
                   const intensity = c.score / maxScore
                   return (
-                    <div
+                    <Tooltip
                       key={c.date}
-                      title={`${c.date}：活跃分 ${c.score}${c.has_new_buddy ? ' · 新宠物' : ''}`}
+                      title={
+                        <span>
+                          {c.date}
+                          <br />
+                          活跃分 {c.score}
+                          {c.has_new_buddy ? (
+                            <>
+                              <br />
+                              获得新宠物
+                            </>
+                          ) : null}
+                        </span>
+                      }
+                    >
+                    <div
                       style={{
                         width: 18,
                         height: 18,
                         borderRadius: 3,
                         backgroundColor: c.score > 0 ? `rgba(65,118,230,${0.18 + intensity * 0.8})` : 'rgba(128,128,128,0.12)',
                         border: c.date === snap.today ? '1.5px solid #2E9BFF' : undefined,
+                        cursor: 'default',
                       }}
                     />
+                    </Tooltip>
                   )
                 })}
               </div>
@@ -482,6 +510,30 @@ export default function GrowthPage({ popup = false }: { popup?: boolean } = {}) 
 }
 
 
+/** 官方领取记录列名中文映射（后端字段原文 → 展示名） */
+const RECORD_COL_LABELS: Record<string, string> = {
+  record_id: '记录 ID',
+  draw_id: '抽奖 ID',
+  reward_id: '奖励 ID',
+  prize_name: '奖品名称',
+  prize_type: '奖品类型',
+  credit_amount: '积分数量',
+  reward_credit: '奖励积分',
+  credit_granted: '获得积分',
+  energy_granted: '获得能量',
+  cards_granted: '获得卡片',
+  chances_granted: '抽奖次数',
+  claimed_at: '领取时间',
+  arrive_at: '到达时间',
+  depart_at: '出发时间',
+  travel_date: '旅行日期',
+  drawn_at: '抽奖时间',
+  created_at: '创建时间',
+  acquired_at: '获得时间',
+  status: '状态',
+  location: '地点',
+}
+
 /** 官方领取记录（travel / draws / rewards 三类，服务端分页） */
 function OfficialRecordsModal({ aid, open, onClose }: { aid: number | null; open: boolean; onClose: () => void }) {
   const [kind, setKind] = useState<'travel' | 'draws' | 'rewards'>('travel')
@@ -507,12 +559,15 @@ function OfficialRecordsModal({ aid, open, onClose }: { aid: number | null; open
   const cols = rows[0]
     ? Object.keys(rows[0])
         .filter((k) => typeof rows[0][k] !== 'object')
-        .slice(0, 7)
         .map((k) => ({
-          title: k,
+          title: RECORD_COL_LABELS[k] ?? k,
           dataIndex: k,
           ellipsis: true,
-          render: (v: unknown) => (typeof v === 'object' ? JSON.stringify(v) : String(v ?? FMT_EMPTY)),
+          render: (v: unknown) => {
+            // epoch 秒时间戳 → 北京时间
+            if (typeof v === 'number' && v > 1_000_000_000) return <span className="num">{fmtTime(new Date(v * 1000).toISOString())}</span>
+            return typeof v === 'object' ? JSON.stringify(v) : String(v ?? FMT_EMPTY)
+          },
         }))
     : []
 

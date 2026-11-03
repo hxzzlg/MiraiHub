@@ -73,7 +73,6 @@ export default function KeysPage() {
   const [ipsFor, setIpsFor] = useState<KeyItem | null>(null)
   const [network, setNetwork] = useState<{ lan_ips: string[]; port: number } | null>(null)
   const [enabledModels, setEnabledModels] = useState<string[]>([])
-  const unlimitedWatch = Form.useWatch('unlimited', form)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -107,8 +106,7 @@ export default function KeysPage() {
     setEditing(k)
     form.setFieldsValue({
       name: k.name,
-      unlimited: k.unlimited,
-      credit_limit: k.credit_limit,
+      credit_limit: k.unlimited ? undefined : k.credit_limit,
       max_concurrent: k.max_concurrent,
       rate_per_minute: k.rate_per_minute,
       group_id: k.group_id || undefined,
@@ -140,10 +138,13 @@ export default function KeysPage() {
 
   const submitForm = async () => {
     const values = await form.validateFields()
+    // 限额语义：留空或 0 = 不限额度（创建时不传 credit_limit 字段；编辑传 null）
+    const limitRaw = values.credit_limit
+    const hasLimit = limitRaw !== undefined && limitRaw !== null && Number(limitRaw) > 0
     const body: Record<string, unknown> = {
       name: values.name,
-      unlimited: !!values.unlimited,
-      credit_limit: values.unlimited ? 0 : Number(values.credit_limit ?? 0),
+      unlimited: !hasLimit,
+      ...(hasLimit ? { credit_limit: Number(limitRaw) } : editing ? { credit_limit: null } : {}),
       max_concurrent: values.max_concurrent ?? null,
       rate_per_minute: values.rate_per_minute ?? null,
       group_id: values.group_id ?? 0,
@@ -382,11 +383,8 @@ export default function KeysPage() {
           <Form.Item name="name" label="名称" rules={[{ required: true, message: '请输入名称' }]}>
             <Input placeholder="如：claude-code 主力 Key" />
           </Form.Item>
-          <Form.Item name="unlimited" valuePropName="checked" initialValue={false}>
-            <Checkbox>不限额度</Checkbox>
-          </Form.Item>
-          <Form.Item name="credit_limit" label="积分限额">
-            <InputNumber style={{ width: '100%' }} min={0} disabled={!!unlimitedWatch} />
+          <Form.Item name="credit_limit" label="积分限额（选填）" extra="留空或填 0 = 不限额度">
+            <InputNumber style={{ width: '100%' }} min={0} placeholder="不限额度" />
           </Form.Item>
           <Row gutter={12}>
             <Col span={12}>
