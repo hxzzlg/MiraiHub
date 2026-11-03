@@ -54,7 +54,7 @@ const FIELD_LABELS: Record<string, string> = {
 
 const EDITABLE = Object.keys(FIELD_LABELS)
 
-export default function ClientProfilePage() {
+export default function ClientProfilePage({ embedded = false }: { embedded?: boolean } = {}) {
   const { message, modal } = AntdApp.useApp()
   const { platformKey } = usePlatform()
   const [data, setData] = useState<ClientProfileResp | null>(null)
@@ -186,6 +186,7 @@ export default function ClientProfilePage() {
 
   return (
     <Space orientation="vertical" size={16} style={{ width: '100%' }}>
+      {!embedded && (
       <PageHeader
         title="客户端参数"
         description={data?.has_client ? `本机客户端已检测（${data.product_version ?? ''}）` : '配置发往上游的客户端指纹与请求头'}
@@ -216,6 +217,7 @@ export default function ClientProfilePage() {
           </Space>
         }
       />
+      )}
 
       {data?.diff_saved_vs_effective && Object.keys(data.diff_saved_vs_effective).length > 0 && (
         <Alert

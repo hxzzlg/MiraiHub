@@ -1,5 +1,4 @@
 import {
-  ApiOutlined,
   AppstoreOutlined,
   BarChartOutlined,
   BellOutlined,
@@ -29,14 +28,12 @@ import {
   TransactionOutlined,
   UserOutlined,
 } from '@ant-design/icons'
-import { App as AntdApp, Avatar, Button, Dropdown, Flex, Layout, Menu, Segmented, Select, Tooltip, Typography } from 'antd'
+import { App as AntdApp, Avatar, Button, Dropdown, Flex, Layout, Menu, Tooltip, Typography } from 'antd'
 import { useEffect, useMemo, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { usePlatform } from '../context/PlatformContext'
 import { useThemeMode } from '../context/ThemeContext'
 import { isAndroid, isDesktop, nativeWindowAction } from '../bridges/native'
-import PlatformLogo from '../components/PlatformLogo'
 
 const { Sider, Header, Content } = Layout
 
@@ -96,7 +93,6 @@ const NAV_GROUPS: { label: string; children: NavItem[] }[] = [
   {
     label: '接入',
     children: [
-      { key: 'client', label: '客户端参数', icon: <ApiOutlined /> },
       { key: 'sync', label: '同步设置', icon: <CloudUploadOutlined /> },
       { key: 'alerts', label: '预警管理', icon: <BellOutlined /> },
     ],
@@ -123,7 +119,7 @@ export default function ConsoleLayout() {
   const { logout } = useAuth()
   const { mode, toggle } = useThemeMode()
   const { message } = AntdApp.useApp()
-  const { platforms, current, select, loading } = usePlatform()
+
   const [collapsed, setCollapsed] = useState(false)
   const androidShell = isAndroid()
 
@@ -163,15 +159,6 @@ export default function ConsoleLayout() {
     [androidShell],
   )
 
-  const currentSpec = platforms.find((p) => p.id === current.platform)
-  const realmOptions = useMemo(() => {
-    const realms = currentSpec?.realms ?? []
-    if (!realms.length) return null
-    return [
-      { label: '全部', value: '' },
-      ...realms.map((r) => ({ label: currentSpec?.realm_labels?.[r.key] ?? r.label, value: r.key })),
-    ]
-  }, [currentSpec])
 
   const selectedKey = location.pathname.replace(/^\//, '') || 'overview'
 
@@ -214,33 +201,6 @@ export default function ConsoleLayout() {
                 icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
                 onClick={() => setCollapsed((v) => !v)}
               />
-              <Select
-                size="small"
-                loading={loading}
-                value={current.platform}
-                style={{ minWidth: 150 }}
-                options={platforms.map((p) => ({
-                  value: p.id,
-                  label: (
-                    <Flex align="center" gap={6}>
-                      <PlatformLogo id={p.id} icon={p.icon} size={16} />
-                      {p.label}
-                    </Flex>
-                  ),
-                }))}
-                onChange={(v) => {
-                  const spec = platforms.find((p) => p.id === v)
-                  select(v, spec?.realm ?? spec?.realms?.[0]?.key ?? null)
-                }}
-              />
-              {realmOptions && (
-                <Segmented
-                  size="small"
-                  options={realmOptions}
-                  value={current.realm ?? ''}
-                  onChange={(v) => select(current.platform, (v as string) || null)}
-                />
-              )}
             </Flex>
             <Flex align="center" gap={4}>
               {isDesktop() && (

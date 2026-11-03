@@ -26,7 +26,6 @@ const LogsPage = lazy(() => import('./pages/LogsPage'))
 const ModelsPage = lazy(() => import('./pages/ModelsPage'))
 const GroupsPage = lazy(() => import('./pages/GroupsPage'))
 const SchedulesPage = lazy(() => import('./pages/SchedulesPage'))
-const ClientProfilePage = lazy(() => import('./pages/ClientProfilePage'))
 const SyncPage = lazy(() => import('./pages/SyncPage'))
 const AlertsPage = lazy(() => import('./pages/AlertsPage'))
 const AgentPage = lazy(() => import('./pages/AgentPage'))
@@ -108,7 +107,6 @@ function AppRoutes() {
         <Route path="models" element={<ModelsPage />} />
         <Route path="groups" element={<GroupsPage />} />
         <Route path="schedules" element={<SchedulesPage />} />
-        <Route path="client" element={<ClientProfilePage />} />
         <Route path="sync" element={<SyncPage />} />
         <Route path="alerts" element={<AlertsPage />} />
         <Route path="agent" element={<AgentPage />} />

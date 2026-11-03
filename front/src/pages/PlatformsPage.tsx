@@ -1,5 +1,5 @@
 import { Button, Card, Col, Flex, Input, Modal, Row, Segmented, Space, Switch, Table, Tag, Tooltip, Typography } from 'antd'
-import { CheckCircleFilled, GiftOutlined } from '@ant-design/icons'
+import { ApiOutlined, CheckCircleFilled, GiftOutlined } from '@ant-design/icons'
 import { api } from '../api/client'
 import { useCallback, useEffect, useState } from 'react'
 import { App as AntdApp } from 'antd'
@@ -7,6 +7,7 @@ import { platformOverview, platformSpeed, type PlatformOverviewCard, type Platfo
 import { usePlatform } from '../context/PlatformContext'
 import PageHeader from '../components/PageHeader'
 import PlatformLogo from '../components/PlatformLogo'
+import ClientProfilePage from './ClientProfilePage'
 import PlatformActionsBar from '../components/PlatformActionsBar'
 import { FMT_EMPTY, fmtInt, fmtPct } from '../utils/format'
 
@@ -20,6 +21,7 @@ export default function PlatformsPage() {
   const [inviteCode, setInviteCode] = useState('')
   const [inviteEnabled, setInviteEnabled] = useState(false)
   const [disabledMap, setDisabledMap] = useState<Record<string, { at: number; reason: string }>>({})
+  const [clientOpen, setClientOpen] = useState(false)
   const [bench, setBench] = useState<PlatformSpeedRow[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -90,11 +92,18 @@ export default function PlatformsPage() {
       <PageHeader title="平台管理" description={spec?.notes || '切换统计与调度口径'} />
       <Space wrap size={8} align="center">
         <PlatformActionsBar spec={spec} onChanged={() => void load()} />
-        <Tooltip title="官方邀请绑定（注册时自动绑定到该邀请）">
-          <Button icon={<GiftOutlined />} onClick={() => { void loadInvite(); setInviteOpen(true) }}>
-            邀请绑定
-          </Button>
-        </Tooltip>
+        {spec?.storage_platform === 'workbuddy' && (
+          <>
+            <Button icon={<ApiOutlined />} onClick={() => setClientOpen(true)}>
+              客户端参数
+            </Button>
+            <Tooltip title="官方邀请绑定（注册时自动绑定到该邀请）">
+              <Button icon={<GiftOutlined />} onClick={() => { void loadInvite(); setInviteOpen(true) }}>
+                邀请绑定
+              </Button>
+            </Tooltip>
+          </>
+        )}
       </Space>
 
       {/* 平台卡片墙 */}
@@ -198,6 +207,18 @@ export default function PlatformsPage() {
           ]}
         />
       </Card>
+
+      <Modal
+        title="客户端参数（WorkBuddy）"
+        open={clientOpen}
+        onCancel={() => setClientOpen(false)}
+        footer={null}
+        width={1060}
+        styles={{ body: { maxHeight: '72vh', overflow: 'auto', paddingRight: 8 } }}
+        mask={{ closable: false }}
+      >
+        <ClientProfilePage embedded />
+      </Modal>
 
       <Modal
         title="WorkBuddy 官方邀请绑定"
