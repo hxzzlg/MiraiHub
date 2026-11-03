@@ -28,9 +28,11 @@ import {
   TransactionOutlined,
   UserOutlined,
 } from '@ant-design/icons'
-import { App as AntdApp, Avatar, Button, Dropdown, Flex, Layout, Menu, Tooltip, Typography } from 'antd'
+import { App as AntdApp, Avatar, Button, Dropdown, Flex, Layout, Menu, Segmented, Select, Tooltip, Typography } from 'antd'
 import { useEffect, useMemo, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
+import PlatformLogo from '../components/PlatformLogo'
+import { usePlatform } from '../context/PlatformContext'
 import { useAuth } from '../context/AuthContext'
 import { useThemeMode } from '../context/ThemeContext'
 import { isAndroid, isDesktop, nativeWindowAction } from '../bridges/native'
@@ -122,6 +124,17 @@ export default function ConsoleLayout() {
 
   const [collapsed, setCollapsed] = useState(false)
   const androidShell = isAndroid()
+  const { platforms, current, select, loading } = usePlatform()
+
+  const currentSpec = platforms.find((p) => p.id === current.platform)
+  const realmOptions = useMemo(() => {
+    const realms = currentSpec?.realms ?? []
+    if (!realms.length) return null
+    return [
+      { label: '全部', value: '' },
+      ...realms.map((r) => ({ label: currentSpec?.realm_labels?.[r.key] ?? r.label, value: r.key })),
+    ]
+  }, [currentSpec])
 
   // 旧版深链兼容：/admin?tab=xxx → #/xxx
   useEffect(() => {
@@ -201,6 +214,34 @@ export default function ConsoleLayout() {
                 icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
                 onClick={() => setCollapsed((v) => !v)}
               />
+              {/* 全局产品口径：所有面板的操作都跟随这里所选的产品 */}
+              <Select
+                size="small"
+                loading={loading}
+                value={current.platform}
+                style={{ minWidth: 150 }}
+                options={platforms.map((p) => ({
+                  value: p.id,
+                  label: (
+                    <Flex align="center" gap={6}>
+                      <PlatformLogo id={p.id} icon={p.icon} size={16} />
+                      {p.label}
+                    </Flex>
+                  ),
+                }))}
+                onChange={(v) => {
+                  const spec = platforms.find((p) => p.id === v)
+                  select(v, spec?.realm ?? spec?.realms?.find((r) => r.default)?.key ?? spec?.realms?.[0]?.key ?? null)
+                }}
+              />
+              {realmOptions && (
+                <Segmented
+                  size="small"
+                  options={realmOptions}
+                  value={current.realm ?? ''}
+                  onChange={(v) => select(current.platform, (v as string) || null)}
+                />
+              )}
             </Flex>
             <Flex align="center" gap={4}>
               {isDesktop() && (
