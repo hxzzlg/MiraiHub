@@ -136,7 +136,17 @@ def realm_of(request, spec) -> str:
             value = header.split(":", 1)[1]
     if not value:
         value = request.headers.get("x-realm") or request.query_params.get("realm") or ""
-    return registry.normalize_realm(spec, value) if spec is not None else str(value or "")
+    if spec is None:
+        return str(value or "")
+    # 钉死区域的平台（`realms=()` + `realm='cn'/'intl'`，如 qoder / qoder-intl /
+    # trae-cn / trae-intl）**本身就是那个区**：直接取 `spec.realm`。
+    # 不能走模块级 `normalize_realm(spec, value)` —— 它看 `spec.realms`，
+    # 钉区域平台那里是空元组，恒返回 ""，然后 `_attempt` 的 `realm or "cn"`
+    # 把国际版流量全部灌进中国版号池（2026-11-03 实测：X-Platform: qoder-intl
+    # 的请求全部落在 cn 账号上）。
+    if getattr(spec, "realm", ""):
+        return str(spec.realm)
+    return registry.normalize_realm(spec, value)
 
 
 def locate(request, fallback: str) -> tuple[str, str, object]:
