@@ -125,7 +125,7 @@ export default function GatewayPage() {
                 size="small"
                 hoverable
                 onClick={() => void saveConfig({ strategy: s.value })}
-                style={config?.strategy === s.value ? { borderColor: '#4176e6' } : undefined}
+                style={config?.strategy === s.value ? { borderColor: '#2E9BFF' } : undefined}
               >
                 <Space align="start">
                   {config?.strategy === s.value ? <Tag color="processing">当前</Tag> : null}

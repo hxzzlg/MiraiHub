@@ -538,7 +538,7 @@ export default function AgentPage() {
         <div ref={streamBoxRef} style={{ flex: 1, overflow: 'auto', padding: '4px 2px' }}>
           {messages.length === 0 && (
             <Flex vertical align="center" justify="center" style={{ height: '100%' }} gap={12}>
-              <Avatar size={48} style={{ backgroundColor: '#4176e6' }}>AI</Avatar>
+              <Avatar size={48} style={{ backgroundColor: '#2E9BFF' }}>AI</Avatar>
               <Typography.Text type="secondary">向下滑动选择预设，或直接输入开始创作</Typography.Text>
               <Space wrap size={8} style={{ justifyContent: 'center' }}>
                 {(prefs.mode === 'chat'
@@ -709,7 +709,7 @@ export default function AgentPage() {
                           return n
                         })
                       }
-                      style={selectedAssets.has(a.asset_id) ? { borderColor: '#4176e6' } : undefined}
+                      style={selectedAssets.has(a.asset_id) ? { borderColor: '#2E9BFF' } : undefined}
                       styles={{ body: { padding: 4 } }}
                     >
                       {a.kind === 'video' ? (

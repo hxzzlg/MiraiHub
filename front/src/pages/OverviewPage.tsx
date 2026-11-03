@@ -6,6 +6,7 @@ import { type PlatformSpec } from '../api/platforms'
 import { usePlatform } from '../context/PlatformContext'
 import PageHeader from '../components/PageHeader'
 import CopyButton from '../components/CopyButton'
+import PlatformLogo from '../components/PlatformLogo'
 import { FMT_EMPTY, fmtCredit, fmtInt, fmtK, fmtNum, fmtPct, fmtTime, secondsAfter } from '../utils/format'
 
 interface OvWindow {
@@ -274,10 +275,13 @@ export default function OverviewPage() {
                     size="small"
                     hoverable
                     onClick={() => select(p.id, p.realm ?? p.realms?.[0]?.key ?? null)}
-                    style={p.id === current.platform ? { borderColor: '#4176e6' } : undefined}
+                    style={p.id === current.platform ? { borderColor: '#2E9BFF' } : undefined}
                   >
-                    <Typography.Text strong>{p.label}</Typography.Text>
-                    <Typography.Text type="secondary" style={{ display: 'block', fontSize: 12 }}>
+                    <Space size={8}>
+                      <PlatformLogo id={p.id} icon={p.icon} size={22} />
+                      <Typography.Text strong>{p.label}</Typography.Text>
+                    </Space>
+                    <Typography.Text type="secondary" style={{ display: 'block', fontSize: 12, marginTop: 2 }}>
                       {p.realm_label || ''} · {fmtInt(p.account_count)} 个账号
                     </Typography.Text>
                   </Card>

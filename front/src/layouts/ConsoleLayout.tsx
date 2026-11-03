@@ -37,6 +37,7 @@ import { useAuth } from '../context/AuthContext'
 import { usePlatform } from '../context/PlatformContext'
 import { useThemeMode } from '../context/ThemeContext'
 import { isAndroid, isDesktop, nativeWindowAction } from '../bridges/native'
+import PlatformLogo from '../components/PlatformLogo'
 
 const { Sider, Header, Content } = Layout
 
@@ -218,8 +219,16 @@ export default function ConsoleLayout() {
                 size="small"
                 loading={loading}
                 value={current.platform}
-                style={{ minWidth: 132 }}
-                options={platforms.map((p) => ({ value: p.id, label: p.label }))}
+                style={{ minWidth: 150 }}
+                options={platforms.map((p) => ({
+                  value: p.id,
+                  label: (
+                    <Flex align="center" gap={6}>
+                      <PlatformLogo id={p.id} icon={p.icon} size={16} />
+                      {p.label}
+                    </Flex>
+                  ),
+                }))}
                 onChange={(v) => {
                   const spec = platforms.find((p) => p.id === v)
                   select(v, spec?.realm ?? spec?.realms?.[0]?.key ?? null)

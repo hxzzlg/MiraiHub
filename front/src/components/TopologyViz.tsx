@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 
 export interface TopoNode {
   id: string
@@ -49,27 +49,34 @@ export default function TopologyViz({
   burst?: number
 }) {
   const svgRef = useRef<SVGSVGElement>(null)
-  const posRef = useRef<Map<string, { x: number; y: number }>>(new Map())
   const particlesRef = useRef<Particle[]>([])
   const layerRef = useRef({ layers, edges, paused })
   layerRef.current = { layers, edges, paused }
   const gLayerRef = useRef<SVGGElement | null>(null)
 
   const width = 720
+  const ROW_GAP = 64
 
-  // 布局：layers 为列，列内均分
-  useEffect(() => {
-    const pos = new Map<string, { x: number; y: number }>()
+  // 布局（同步计算）：列内节点间距有下限，防止相邻节点的标签重叠；
+  // 末列标签绘制在节点**右侧**，节点横向前移为文字留出空间。
+  const layout = useMemo(() => {
+    const pos = new Map<string, { x: number; y: number; last: boolean }>()
     const cols = layers.length
+    const labelRight = cols >= 2
+    const lastX = labelRight ? width - 205 : width - 80
+    let need = height
     layers.forEach((col, ci) => {
-      const x = cols === 1 ? width / 2 : 80 + (ci * (width - 160)) / (cols - 1)
+      const gap = Math.max(height / (col.length + 1), ROW_GAP)
+      need = Math.max(need, Math.round(gap * (col.length + 1)))
+      const x = cols === 1 ? width / 2 : ci === 0 ? 90 : ci === cols - 1 ? lastX : 90 + ((ci * (lastX - 90)) / (cols - 1))
       col.forEach((n, ri) => {
-        const y = ((ri + 1) * height) / (col.length + 1)
-        pos.set(n.id, { x, y })
+        pos.set(n.id, { x, y: (ri + 1) * gap, last: labelRight && ci === cols - 1 })
       })
     })
-    posRef.current = pos
+    return { pos, svgHeight: need }
   }, [layers, height])
+  const posRef = useRef(layout.pos)
+  posRef.current = layout.pos
 
   const spawnOnEdge = (e: TopoEdge, i: number) => {
     const gLayer = gLayerRef.current
@@ -154,7 +161,7 @@ export default function TopologyViz({
   }, [])
 
   return (
-    <svg ref={svgRef} width="100%" height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: 'block' }}>
+    <svg ref={svgRef} width="100%" height={layout.svgHeight} viewBox={`0 0 ${width} ${layout.svgHeight}`} style={{ display: 'block' }}>
       {edges.map((e, i) => {
         const from = posRef.current.get(e.from)
         const to = posRef.current.get(e.to)
@@ -184,7 +191,7 @@ export default function TopologyViz({
           </g>
         )
       })}
-      {layers.map((col, ci) =>
+      {layers.map((col, _ci) =>
         col.map((n) => {
           const p = posRef.current.get(n.id)
           if (!p) return null
@@ -193,15 +200,29 @@ export default function TopologyViz({
             <g key={n.id}>
               <circle cx={p.x} cy={p.y} r={16} fill={color} fillOpacity={0.18} stroke={color} strokeWidth={1.5} />
               <circle cx={p.x} cy={p.y} r={5} fill={color} />
-              <text x={p.x} y={p.y - 24} textAnchor="middle" fontSize={12} fontWeight={600} fill="currentColor">
-                {n.label}
-              </text>
-              {n.sub && (
-                <text x={p.x} y={p.y + 32} textAnchor="middle" fontSize={10} fill="currentColor" opacity={0.65}>
-                  {n.sub}
-                </text>
+              {p.last ? (
+                <>
+                  <text x={p.x + 26} y={p.y - 2} textAnchor="start" fontSize={12} fontWeight={600} fill="currentColor">
+                    {n.label}
+                  </text>
+                  {n.sub && (
+                    <text x={p.x + 26} y={p.y + 15} textAnchor="start" fontSize={10} fill="currentColor" opacity={0.65}>
+                      {n.sub}
+                    </text>
+                  )}
+                </>
+              ) : (
+                <>
+                  <text x={p.x} y={p.y - 24} textAnchor="middle" fontSize={12} fontWeight={600} fill="currentColor">
+                    {n.label}
+                  </text>
+                  {n.sub && (
+                    <text x={p.x} y={p.y + 32} textAnchor="middle" fontSize={10} fill="currentColor" opacity={0.65}>
+                      {n.sub}
+                    </text>
+                  )}
+                </>
               )}
-              {ci === 0 && null}
             </g>
           )
         }),

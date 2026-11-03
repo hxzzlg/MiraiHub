@@ -1,13 +1,14 @@
-import { Avatar, Card, Col, Row, Segmented, Space, Table, Tag, Typography } from 'antd'
+import { Card, Col, Row, Segmented, Space, Table, Tag, Typography } from 'antd'
 import { CheckCircleFilled } from '@ant-design/icons'
 import { useCallback, useEffect, useState } from 'react'
 import { platformOverview, platformSpeed, type PlatformOverviewCard, type PlatformSpeedRow } from '../api/platforms'
 import { usePlatform } from '../context/PlatformContext'
 import PageHeader from '../components/PageHeader'
+import PlatformLogo from '../components/PlatformLogo'
 import PlatformActionsBar from '../components/PlatformActionsBar'
 import { FMT_EMPTY, fmtInt, fmtPct } from '../utils/format'
 
-const TONE_COLOR: Record<string, string> = { brand: '#4176e6', warn: '#d9930d' }
+const TONE_COLOR: Record<string, string> = { brand: '#2E9BFF', warn: '#d9930d' }
 
 export default function PlatformsPage() {
   const { platforms, current, select, platformKey } = usePlatform()
@@ -53,16 +54,14 @@ export default function PlatformsPage() {
                   size="small"
                   hoverable
                   onClick={() => select(p.id, p.realm ?? p.realms?.find((r) => r.default)?.key ?? p.realms?.[0]?.key ?? null)}
-                  style={active ? { borderColor: '#4176e6' } : undefined}
+                  style={active ? { borderColor: '#2E9BFF' } : undefined}
                 >
                   <Space align="center">
-                    <Avatar shape="square" size={36} src={p.icon?.startsWith("/") || p.icon?.startsWith("http") ? p.icon : undefined}>
-                      {p.label.slice(0, 1)}
-                    </Avatar>
+                    <PlatformLogo id={p.id} icon={p.icon} size={36} />
                     <div>
                       <Space size={4}>
                         <Typography.Text strong>{p.label}</Typography.Text>
-                        {active && <CheckCircleFilled style={{ color: '#4176e6' }} />}
+                        {active && <CheckCircleFilled style={{ color: '#2E9BFF' }} />}
                       </Space>
                       <Typography.Text type="secondary" style={{ display: 'block', fontSize: 12 }}>
                         {p.realm_label || (p.realms?.length ? `${p.realms.length} 个区域` : '')} · {fmtInt(p.account_count)} 个账号

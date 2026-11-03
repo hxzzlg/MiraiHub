@@ -466,7 +466,7 @@ function WorkbuddyAccounts({ spec }: { spec: ReturnType<typeof usePlatform>['pla
               ellipsis: true,
               render: (_, a: WbAccount) => (
                 <Space size={4}>
-                  <Avatar size={22} style={{ backgroundColor: '#4176e6', fontSize: 12 }}>{a.name.slice(0, 1)}</Avatar>
+                  <Avatar size={22} style={{ backgroundColor: '#2E9BFF', fontSize: 12 }}>{a.name.slice(0, 1)}</Avatar>
                   <Typography.Text strong>{a.name}</Typography.Text>
                   <Typography.Text type="secondary" style={{ fontSize: 11 }}>{a.uid}</Typography.Text>
                   {tokenBadge(a)}

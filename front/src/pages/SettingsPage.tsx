@@ -1,4 +1,5 @@
-import { App as AntdApp, Button, Card, Col, Form, Input, InputNumber, Row, Select, Space, Switch, Tag, Typography } from 'antd'
+import { App as AntdApp, Button, Card, Col, Form, Input, InputNumber, Modal, Row, Select, Space, Switch, Tag, Typography } from 'antd'
+import { LockOutlined } from '@ant-design/icons'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
@@ -29,6 +30,7 @@ export default function SettingsPage() {
   const [invitation, setInvitation] = useState('')
   const [invitationEnabled, setInvitationEnabled] = useState(false)
   const [pwdForm] = Form.useForm()
+  const [pwdOpen, setPwdOpen] = useState(false)
 
   const load = useCallback(async () => {
     try {
@@ -116,6 +118,7 @@ export default function SettingsPage() {
       await api('/api/admin/password', { method: 'PATCH', body: { old_password: v.old_password, new_password: v.new_password } })
       message.success('密码已修改')
       pwdForm.resetFields()
+      setPwdOpen(false)
     } catch (e) {
       message.error((e as Error).message)
     }
@@ -226,31 +229,13 @@ export default function SettingsPage() {
 
       <Row gutter={[12, 12]}>
         <Col xs={24} md={12}>
-          <Card size="small" title="修改登录密码">
-            <Form form={pwdForm} layout="vertical" onFinish={() => void changePassword()}>
-              <Form.Item name="old_password" label="当前密码" rules={[{ required: true, message: '请输入当前密码' }]}>
-                <Input.Password />
-              </Form.Item>
-              <Form.Item name="new_password" label="新密码（≥6 位）" rules={[{ required: true, message: '请输入新密码' }]}>
-                <Input.Password />
-              </Form.Item>
-              <Form.Item
-                name="confirm"
-                label="确认新密码"
-                dependencies={['new_password']}
-                rules={[
-                  { required: true, message: '请再次输入' },
-                  ({ getFieldValue }) => ({
-                    validator: (_, v) => (v === getFieldValue('new_password') ? Promise.resolve() : Promise.reject(new Error('两次输入不一致'))),
-                  }),
-                ]}
-              >
-                <Input.Password />
-              </Form.Item>
-              <Button type="primary" htmlType="submit">
-                修改密码
-              </Button>
-            </Form>
+          <Card size="small" title="账号安全">
+            <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginBottom: 12 }}>
+              定期更换管理密码可降低爆破风险；修改后当前会话保持登录，新会话需用新密码。
+            </Typography.Paragraph>
+            <Button type="primary" icon={<LockOutlined />} onClick={() => setPwdOpen(true)}>
+              修改登录密码
+            </Button>
           </Card>
         </Col>
         <Col xs={24} md={12}>
@@ -262,6 +247,39 @@ export default function SettingsPage() {
           </Card>
         </Col>
       </Row>
+      <Modal
+        title="修改登录密码"
+        open={pwdOpen}
+        onCancel={() => {
+          setPwdOpen(false)
+          pwdForm.resetFields()
+        }}
+        onOk={() => void changePassword()}
+        okText="确认修改"
+        width={420}
+      >
+        <Form form={pwdForm} layout="vertical" onFinish={() => void changePassword()}>
+          <Form.Item name="old_password" label="当前密码" rules={[{ required: true, message: '请输入当前密码' }]}>
+            <Input.Password />
+          </Form.Item>
+          <Form.Item name="new_password" label="新密码（≥6 位）" rules={[{ required: true, message: '请输入新密码' }]}>
+            <Input.Password />
+          </Form.Item>
+          <Form.Item
+            name="confirm"
+            label="确认新密码"
+            dependencies={['new_password']}
+            rules={[
+              { required: true, message: '请再次输入' },
+              ({ getFieldValue }) => ({
+                validator: (_, v) => (v === getFieldValue('new_password') ? Promise.resolve() : Promise.reject(new Error('两次输入不一致'))),
+              }),
+            ]}
+          >
+            <Input.Password />
+          </Form.Item>
+        </Form>
+      </Modal>
     </Space>
   )
 }

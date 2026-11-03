@@ -232,7 +232,7 @@ export default function GrowthPage() {
           <Card size="small">
             <Row align="middle" gutter={16}>
               <Col flex="none">
-                <Avatar size={44} style={{ backgroundColor: '#4176e6' }}>
+                <Avatar size={44} style={{ backgroundColor: '#2E9BFF' }}>
                   Lv{profile?.level ?? '?'}
                 </Avatar>
               </Col>
@@ -399,7 +399,7 @@ export default function GrowthPage() {
                         height: 18,
                         borderRadius: 3,
                         backgroundColor: c.score > 0 ? `rgba(65,118,230,${0.18 + intensity * 0.8})` : 'rgba(128,128,128,0.12)',
-                        border: c.date === snap.today ? '1.5px solid #4176e6' : undefined,
+                        border: c.date === snap.today ? '1.5px solid #2E9BFF' : undefined,
                       }}
                     />
                   )

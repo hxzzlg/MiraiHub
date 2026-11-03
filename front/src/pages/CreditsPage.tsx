@@ -245,7 +245,7 @@ export default function CreditsPage() {
                       percent={riskTotal ? Math.round((w.amount / riskTotal) * 100) : 0}
                       size="small"
                       format={() => fmtCredit(w.amount)}
-                      strokeColor={w.days <= 3 ? '#d4574e' : w.days <= 7 ? '#d9930d' : '#4176e6'}
+                      strokeColor={w.days <= 3 ? '#d4574e' : w.days <= 7 ? '#d9930d' : '#2E9BFF'}
                     />
                   </Col>
                   <Col span={3} style={{ textAlign: 'right' }}>
