@@ -1,6 +1,13 @@
 services:
   admin:
-    build: .
+    build:
+      context: .
+      # 构建期走宿主网络（代理/DNS 与宿主一致）；不需要代理时在 .env 设 DOCKER_BUILD_PROXY 为空
+      network: host
+      args:
+        HTTPS_PROXY: ${DOCKER_BUILD_PROXY:-}
+        HTTP_PROXY: ${DOCKER_BUILD_PROXY:-}
+        NO_PROXY: localhost,127.0.0.1
     ports:
       - "${ADMIN_PORT:-8790}:8790"
     volumes:
