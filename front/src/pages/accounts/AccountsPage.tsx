@@ -174,15 +174,13 @@ function WorkbuddyAccounts({ spec }: { spec: ReturnType<typeof usePlatform>['pla
     }
   }
 
+  // 健康检查（单账号）后端同样返回异步 job 快照，统一走批量任务轮询弹窗
   const healthAcc = async (a: WbAccount) => {
-    message.loading({ content: `正在检查 ${a.name}…`, key: `hc${a.id}`, duration: 0 })
-    try {
-      const r = await api<Record<string, unknown>>(`/api/accounts/${a.id}/health-check`, { method: 'POST', body: {}, timeout: 120000 })
-      message.success({ content: '检查完成', key: `hc${a.id}` })
-      setHealthResult(r)
-    } catch (e) {
-      message.error({ content: (e as Error).message || '检查失败', key: `hc${a.id}` })
-    }
+    await runJob({
+      title: `健康检查：${a.name}`,
+      submitUrl: `/api/accounts/${a.id}/health-check`,
+      onFinish: () => void load(),
+    })
   }
 
   const healthAll = async () => {
@@ -448,6 +446,7 @@ function WorkbuddyAccounts({ spec }: { spec: ReturnType<typeof usePlatform>['pla
           )}
         </Space>
         <Table
+          scroll={{ x: 'max-content' }}
           size="small"
           rowKey="id"
           loading={loading}
@@ -634,6 +633,7 @@ function ModelPoolModal({
             <Statistic title="24h Tokens" value={fmtK(Number(summary.rolling_24h ? (summary.rolling_24h as { tokens?: number }).tokens ?? 0 : 0))} />
           </Space>
           <Table
+            scroll={{ x: 'max-content' }}
             size="small"
             rowKey={(r) => String(r.id)}
             loading={loading}
@@ -840,6 +840,7 @@ function GenericAccounts({ spec, storage }: { spec: ReturnType<typeof usePlatfor
           )}
         </Space>
         <Table
+          scroll={{ x: 'max-content' }}
           size="small"
           rowKey="id"
           loading={loading}

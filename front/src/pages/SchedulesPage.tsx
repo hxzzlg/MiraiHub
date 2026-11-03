@@ -184,6 +184,7 @@ export default function SchedulesPage() {
       />
       <Card size="small">
         <Table
+          scroll={{ x: 'max-content' }}
           size="small"
           rowKey="id"
           loading={loading}

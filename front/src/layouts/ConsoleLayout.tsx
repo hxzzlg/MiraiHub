@@ -11,7 +11,6 @@ import {
   GlobalOutlined,
   KeyOutlined,
   LogoutOutlined,
-  MenuFoldOutlined,
   MenuUnfoldOutlined,
   MinusOutlined,
   MobileOutlined,
@@ -28,7 +27,7 @@ import {
   TransactionOutlined,
   UserOutlined,
 } from '@ant-design/icons'
-import { App as AntdApp, Avatar, Button, Dropdown, Flex, Layout, Menu, Segmented, Select, Tooltip, Typography } from 'antd'
+import { App as AntdApp, Avatar, Button, Drawer, Dropdown, Flex, Layout, Menu, Segmented, Select, Tooltip, Typography } from 'antd'
 import { useEffect, useMemo, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import PlatformLogo from '../components/PlatformLogo'
@@ -123,7 +122,20 @@ export default function ConsoleLayout() {
   const { message } = AntdApp.useApp()
 
   const [collapsed, setCollapsed] = useState(false)
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 768px)').matches)
+  const [mobileOpen, setMobileOpen] = useState(false)
   const androidShell = isAndroid()
+
+  // ≤768px：侧栏隐藏，改用抽屉
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)')
+    const onChange = (e: MediaQueryListEvent) => {
+      setIsMobile(e.matches)
+      if (!e.matches) setMobileOpen(false)
+    }
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
   const { platforms, current, select, loading } = usePlatform()
 
   const currentSpec = platforms.find((p) => p.id === current.platform)
@@ -177,6 +189,31 @@ export default function ConsoleLayout() {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
+      <Drawer
+        title={
+          <Flex align="center" gap={8}>
+            <Avatar shape="square" size={24} src="/api/app/icon" />
+            <Typography.Text strong>MiraiHub</Typography.Text>
+          </Flex>
+        }
+        placement="left"
+        open={isMobile && mobileOpen}
+        onClose={() => setMobileOpen(false)}
+        width={240}
+        styles={{ body: { padding: '8px 0' } }}
+      >
+        <Menu
+          mode="inline"
+          items={menuItems}
+          selectedKeys={[selectedKey]}
+          onClick={({ key }) => {
+            navigate(`/${key}`)
+            setMobileOpen(false)
+          }}
+          style={{ borderInlineEnd: 'none' }}
+        />
+      </Drawer>
+      {!isMobile && (
       <Sider
         width={216}
         collapsedWidth={64}
@@ -204,22 +241,23 @@ export default function ConsoleLayout() {
           style={{ borderInlineEnd: 'none' }}
         />
       </Sider>
+      )}
       <Layout>
         <Header>
-          <Flex align="center" justify="space-between" gap={12} style={{ height: '100%' }}>
+          <Flex align="center" justify="space-between" gap={12} wrap="wrap" style={{ minHeight: 48, height: 'auto', paddingBlock: 6 }}>
             <Flex align="center" gap={8}>
               <Button
                 type="text"
                 size="small"
-                icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-                onClick={() => setCollapsed((v) => !v)}
+                icon={<MenuUnfoldOutlined />}
+                onClick={() => (isMobile ? setMobileOpen(true) : setCollapsed((v) => !v))}
               />
               {/* 全局产品口径：所有面板的操作都跟随这里所选的产品 */}
               <Select
                 size="small"
                 loading={loading}
                 value={current.platform}
-                style={{ minWidth: 150 }}
+                style={{ minWidth: 150, maxWidth: isMobile ? 132 : undefined }}
                 options={platforms.map((p) => ({
                   value: p.id,
                   label: (

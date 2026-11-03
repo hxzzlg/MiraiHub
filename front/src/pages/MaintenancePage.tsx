@@ -123,8 +123,8 @@ export default function MaintenancePage() {
       <PageHeader title="更新与备份" onRefresh={() => void load()} refreshing={loading} />
 
       {/* 版本卡 */}
-      <Card size="small" title="版本">
-        <Row gutter={12}>
+      <Card size="small" style={{ height: '100%' }} title="版本">
+        <Row gutter={12} align="stretch">
           <Col xs={8} md={4}><Statistic title="当前版本" value={info?.version ?? '—'} /></Col>
           <Col xs={8} md={6}>
             <Statistic title="最新版本" value={info?.latest?.tag ?? '—'} />
@@ -152,8 +152,8 @@ export default function MaintenancePage() {
       </Card>
 
       {/* 备份区 */}
-      <Card size="small" title="数据库备份与恢复">
-        <Row gutter={[12, 12]}>
+      <Card size="small" style={{ height: '100%' }} title="数据库备份与恢复">
+        <Row gutter={[12, 12]} align="stretch">
           <Col xs={24} md={12}>
             <Space orientation="vertical" size={8} style={{ width: '100%' }}>
               <Space wrap>

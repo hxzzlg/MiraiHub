@@ -231,9 +231,9 @@ export default function CreditsPage() {
         ]}
       />
 
-      <Row gutter={[12, 12]}>
+      <Row gutter={[12, 12]} align="stretch">
         <Col xs={24} xl={12}>
-          <Card size="small" title="到期风险分布">
+          <Card size="small" style={{ height: '100%' }} title="到期风险分布">
             {(data?.windows ?? []).map((w) => (
               <div key={w.days} style={{ marginBottom: 8 }}>
                 <Row align="middle" gutter={8}>
@@ -264,7 +264,7 @@ export default function CreditsPage() {
           </Card>
         </Col>
         <Col xs={24} xl={12}>
-          <Card size="small" title="账号调度策略">
+          <Card size="small" style={{ height: '100%' }} title="账号调度策略">
             {policy && data?.routing_policy && (
               <Space orientation="vertical" size={8} style={{ width: '100%' }}>
                 <Row align="middle" gutter={8}>
@@ -307,7 +307,7 @@ export default function CreditsPage() {
         </Col>
       </Row>
 
-      <Card size="small" title="账号到期排行" extra={
+      <Card size="small" style={{ height: '100%' }} title="账号到期排行" extra={
         data?.selection_mode === 'manual' ? (
           <Button size="small" onClick={() => void resetOrder()}>
             恢复自动排序
@@ -366,9 +366,9 @@ export default function CreditsPage() {
         />
       </Card>
 
-      <Row gutter={[12, 12]}>
+      <Row gutter={[12, 12]} align="stretch">
         <Col xs={24} xl={12}>
-          <Card size="small" title="最近快到期的积分包">
+          <Card size="small" style={{ height: '100%' }} title="最近快到期的积分包">
             <div style={{ maxHeight: 320, overflow: 'auto' }} onScroll={(e) => {
               const el = e.currentTarget
               if (el.scrollHeight - el.scrollTop - el.clientHeight < 60) void loadMorePackages()
@@ -395,7 +395,7 @@ export default function CreditsPage() {
           </Card>
         </Col>
         <Col xs={24} xl={12}>
-          <Card size="small" title={`账号消耗构成（近 ${usage?.range_days ?? 7} 天）`}>
+          <Card size="small" style={{ height: '100%' }} title={`账号消耗构成（近 ${usage?.range_days ?? 7} 天）`}>
             <Table
               size="small"
               rowKey="account_id"

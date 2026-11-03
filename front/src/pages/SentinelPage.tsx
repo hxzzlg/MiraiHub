@@ -185,9 +185,9 @@ export default function SentinelPage() {
         </Card>
       ))}
 
-      <Row gutter={[12, 12]}>
+      <Row gutter={[12, 12]} align="stretch">
         <Col xs={24} xl={14}>
-          <Card size="small" title="实时流量" style={{ minHeight: 380 }}>
+          <Card size="small" style={{ height: '100%', minHeight: 380 }} title="实时流量">
             <TopologyViz layers={nodes} edges={edges} height={240} />
             <div style={{ marginTop: 12 }}>
               <StatCards
@@ -225,7 +225,7 @@ export default function SentinelPage() {
           </Card>
         </Col>
         <Col xs={24} xl={10}>
-          <Card size="small" title="实时请求结果" style={{ minHeight: 380, maxHeight: 480, overflow: 'auto' }}>
+          <Card size="small" style={{ height: '100%' }} styles={{ body: { maxHeight: '56vh', overflow: 'auto' } }} title="实时请求结果">
             {(traffic?.recent ?? []).slice(0, 20).map((r) => (
               <Row key={r.rid ?? `${r.ts}-${r.model}`} gutter={8} style={{ marginBottom: 4 }} align="middle">
                 <Col flex="none">
@@ -248,9 +248,9 @@ export default function SentinelPage() {
         </Col>
       </Row>
 
-      <Row gutter={[12, 12]}>
+      <Row gutter={[12, 12]} align="stretch">
         <Col xs={24} xl={12}>
-          <Card size="small" title="受影响账号">
+          <Card size="small" style={{ height: '100%' }} title="受影响账号">
             <Table
               size="small"
               rowKey="account_id"
@@ -269,7 +269,7 @@ export default function SentinelPage() {
           </Card>
         </Col>
         <Col xs={24} xl={12}>
-          <Card size="small" title="信号明细">
+          <Card size="small" style={{ height: '100%' }} title="信号明细">
             <Table
               size="small"
               rowKey={(_, i) => String(i)}

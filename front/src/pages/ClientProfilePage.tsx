@@ -232,7 +232,7 @@ export default function ClientProfilePage({ embedded = false }: { embedded?: boo
       )}
 
       {/* 生效 UA */}
-      <Card size="small" title="生效 User-Agent">
+      <Card size="small" style={{ height: '100%' }} title="生效 User-Agent">
         <Space>
           <Typography.Text code style={{ wordBreak: 'break-all', fontSize: 12 }}>
             {data?.ua || '—'}
@@ -242,7 +242,7 @@ export default function ClientProfilePage({ embedded = false }: { embedded?: boo
       </Card>
 
       {/* 字段表单 */}
-      <Card size="small" title="参数表单（留空 = 不改动）" extra={<Button type="primary" loading={busy === 'save'} onClick={() => void save()}>保存</Button>}>
+      <Card size="small" style={{ height: '100%' }} title="参数表单（留空 = 不改动）" extra={<Button type="primary" loading={busy === 'save'} onClick={() => void save()}>保存</Button>}>
         <Row gutter={[12, 8]}>
           {EDITABLE.map((k) => (
             <Col key={k} xs={24} md={12} xl={8}>
@@ -277,9 +277,9 @@ export default function ClientProfilePage({ embedded = false }: { embedded?: boo
         </Button>
       </Card>
 
-      <Row gutter={[12, 12]}>
+      <Row gutter={[12, 12]} align="stretch">
         <Col xs={24} xl={12}>
-          <Card size="small" title="运行时诊断">
+          <Card size="small" style={{ height: '100%' }} title="运行时诊断">
             <Descriptions size="small" column={2}>
               <Descriptions.Item label="平台">{rd?.platform || '—'}</Descriptions.Item>
               <Descriptions.Item label="设备令牌">
@@ -296,7 +296,7 @@ export default function ClientProfilePage({ embedded = false }: { embedded?: boo
           </Card>
         </Col>
         <Col xs={24} xl={12}>
-          <Card size="small" title="请求头分组">
+          <Card size="small" style={{ height: '100%' }} title="请求头分组">
             {(['client_profile', 'sdk_stainless', 'account_session'] as const).map((g) => (
               <div key={g} style={{ marginBottom: 8 }}>
                 <Typography.Text type="secondary" style={{ fontSize: 12 }}>
@@ -316,7 +316,7 @@ export default function ClientProfilePage({ embedded = false }: { embedded?: boo
       </Row>
 
       {/* 取值来源 */}
-      <Card size="small" title="取值来源">
+      <Card size="small" style={{ height: '100%' }} title="取值来源">
         <Table
           size="small"
           rowKey={(r) => String(r.key)}

@@ -11,6 +11,7 @@ import {
   traeWebCookie,
 } from '../api/platformOps'
 import DeviceAuthModal from './DeviceAuthModal'
+import { WbUsageDrawer } from '../pages/accounts/WbUsageDrawer'
 import { usePlatform } from '../context/PlatformContext'
 
 const ACTION_LABELS: Record<string, { label: string; icon: React.ReactNode; tip?: string }> = {
@@ -177,7 +178,11 @@ export default function PlatformActionsBar({ spec, onChanged }: { spec?: Platfor
           placeholder="sid_tt=...; sessionid=...; X-Cloudide-Session=..."
         />
       </Modal>
-      <UsageDrawer storage={storage} realm={realm} open={usageOpen} onClose={() => setUsageOpen(false)} />
+      {storage === 'workbuddy' ? (
+        <WbUsageDrawer open={usageOpen} onClose={() => setUsageOpen(false)} />
+      ) : (
+        <UsageDrawer storage={storage} realm={realm} open={usageOpen} onClose={() => setUsageOpen(false)} />
+      )}
     </Space>
   )
 }

@@ -185,7 +185,7 @@ export default function AppSourcePage() {
         refreshing={busy === 'detect'}
       />
 
-      <Card size="small" title="状态">
+      <Card size="small" style={{ height: '100%' }} title="状态">
         <Descriptions size="small" column={2}>
           <Descriptions.Item label="安装目录">{status?.install_dir || '未定位'}</Descriptions.Item>
           <Descriptions.Item label="asar">{status?.asar || '—'}</Descriptions.Item>
@@ -206,7 +206,7 @@ export default function AppSourcePage() {
         </Space>
       </Card>
 
-      <Card size="small" title="路径定位">
+      <Card size="small" style={{ height: '100%' }} title="路径定位">
         <Space orientation="vertical" size={8} style={{ width: '100%' }}>
           <Row gutter={8}>
             <Col span={18}>
@@ -231,7 +231,7 @@ export default function AppSourcePage() {
         </Space>
       </Card>
 
-      <Card size="small" title="拆包">
+      <Card size="small" style={{ height: '100%' }} title="拆包">
         <Space orientation="vertical" size={8} style={{ width: '100%' }}>
           <Space>
             <Button icon={<FolderOpenOutlined />} loading={busy === 'plan'} onClick={() => void doPlan()}>
@@ -264,7 +264,7 @@ export default function AppSourcePage() {
         </Space>
       </Card>
 
-      <Card size="small" title="产物内检索">
+      <Card size="small" style={{ height: '100%' }} title="产物内检索">
         <Space orientation="vertical" size={8} style={{ width: '100%' }}>
           <Space.Compact style={{ width: '100%' }}>
             <Input

@@ -137,13 +137,13 @@ export default function IpPage() {
     <Space orientation="vertical" size={16} style={{ width: '100%' }}>
       <PageHeader title="IP 管理" onRefresh={() => void load()} refreshing={loading} />
 
-      <Row gutter={12}>
+      <Row gutter={12} align="stretch">
         <Col xs={8}><Card size="small"><Statistic title="活跃 IP" value={data?.total_ips ?? 0} /></Card></Col>
         <Col xs={8}><Card size="small"><Statistic title="总请求" value={data?.total_requests ?? 0} /></Card></Col>
         <Col xs={8}><Card size="small"><Statistic title="封禁中" value={data?.blocked_count ?? 0} /></Card></Col>
       </Row>
 
-      <Card size="small" title="活跃 IP">
+      <Card size="small" style={{ height: '100%' }} title="活跃 IP">
         <Space wrap size={12} style={{ marginBottom: 12 }}>
           <Segmented value={days} onChange={(v) => setDays(v as number)} options={[{ label: '1 天', value: 1 }, { label: '7 天', value: 7 }, { label: '30 天', value: 30 }, { label: '90 天', value: 90 }]} />
           <Segmented value={sort} onChange={(v) => setSort(v as typeof sort)} options={[{ label: '按请求', value: 'requests' }, { label: '按 Token', value: 'tokens' }, { label: '按积分', value: 'credits' }]} />
@@ -151,6 +151,7 @@ export default function IpPage() {
           <Input allowClear placeholder="IP 过滤" value={ipFilter} onChange={(e) => setIpFilter(e.target.value)} style={{ width: 180 }} />
         </Space>
         <Table
+          scroll={{ x: 'max-content' }}
           size="small"
           rowKey="ip"
           loading={loading}
@@ -200,9 +201,9 @@ export default function IpPage() {
         />
       </Card>
 
-      <Row gutter={[12, 12]}>
+      <Row gutter={[12, 12]} align="stretch">
         <Col xs={24} xl={12}>
-          <Card size="small" title="封禁名单">
+          <Card size="small" style={{ height: '100%' }} title="封禁名单">
             <Form form={blockForm} layout="inline" style={{ marginBottom: 12 }}>
               <Form.Item name="ip" rules={[{ required: true, message: '请输入 IP' }]}>
                 <Input placeholder="IP 地址" style={{ width: 180 }} />
@@ -239,7 +240,7 @@ export default function IpPage() {
           </Card>
         </Col>
         <Col xs={24} xl={12}>
-          <Card size="small" title="设备关联">
+          <Card size="small" style={{ height: '100%' }} title="设备关联">
             <Table
               size="small"
               rowKey={(r) => `${r.kind}-${r.digest}`}

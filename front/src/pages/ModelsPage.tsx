@@ -283,6 +283,7 @@ export default function ModelsPage() {
       <Card size="small">
         {view === 'flat' ? (
           <Table
+            scroll={{ x: 'max-content' }}
             size="small"
             rowKey="id"
             loading={loading}
@@ -351,6 +352,7 @@ export default function ModelsPage() {
           />
         ) : (
           <Table
+            scroll={{ x: 'max-content' }}
             size="small"
             rowKey="key"
             loading={loading}

@@ -178,7 +178,7 @@ export default function SettingsPage() {
         }
       />
 
-      <Card size="small" title="运行配置">
+      <Card size="small" style={{ height: '100%' }} title="运行配置">
         <Space orientation="vertical" size={12} style={{ width: '100%' }}>
           <Select value={group} onChange={setGroup} style={{ minWidth: 220 }} options={groups.map((g) => ({ value: g, label: g }))} />
           <div>{groupFields.map(renderField)}</div>
@@ -191,9 +191,9 @@ export default function SettingsPage() {
       </Card>
 
 
-      <Row gutter={[12, 12]}>
+      <Row gutter={[12, 12]} align="stretch">
         <Col xs={24} md={12}>
-          <Card size="small" title="账号安全">
+          <Card size="small" style={{ height: '100%' }} title="账号安全">
             <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginBottom: 12 }}>
               定期更换管理密码可降低爆破风险；修改后当前会话保持登录，新会话需用新密码。
             </Typography.Paragraph>
@@ -203,7 +203,7 @@ export default function SettingsPage() {
           </Card>
         </Col>
         <Col xs={24} md={12}>
-          <Card size="small" title="逆向产物工具">
+          <Card size="small" style={{ height: '100%' }} title="逆向产物工具">
             <Typography.Paragraph type="secondary" style={{ fontSize: 12 }}>
               客户端拆包、产物检索与注册凭证管理等开发工具已归入 <Tag>调试 → 逆向产物</Tag>。
             </Typography.Paragraph>

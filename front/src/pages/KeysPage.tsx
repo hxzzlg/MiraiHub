@@ -278,6 +278,7 @@ export default function KeysPage() {
 
       <Card size="small">
         <Table
+          scroll={{ x: 'max-content' }}
           size="small"
           rowKey="id"
           loading={loading}

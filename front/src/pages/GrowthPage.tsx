@@ -1,4 +1,4 @@
-import { App as AntdApp, Avatar, Button, Card, Col, Listy, Row, Select, Space, Spin, Table, Tag, Typography } from 'antd'
+import { App as AntdApp, Avatar, Button, Card, Col, Listy, Modal, Row, Select, Space, Spin, Table, Tabs, Tag, Typography } from 'antd'
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api/client'
 import PageHeader from '../components/PageHeader'
@@ -71,6 +71,7 @@ export default function GrowthPage({ popup = false }: { popup?: boolean } = {}) 
   const [hasMore, setHasMore] = useState(false)
   const [loading, setLoading] = useState(false)
   const [acting, setActing] = useState(false)
+  const [officialOpen, setOfficialOpen] = useState(false)
 
   const loadAccounts = useCallback(async () => {
     try {
@@ -136,7 +137,7 @@ export default function GrowthPage({ popup = false }: { popup?: boolean } = {}) 
     }
   }
 
-  const doAction = (action: 'open' | 'gift' | 'draw' | 'checkin' | 'redeem', title: string, tier?: number) => {
+  const doAction = (action: 'open' | 'gift' | 'draw' | 'checkin' | 'redeem', title: string, tier?: string | number) => {
     if (!aid) return
     modal.confirm({
       title,
@@ -164,7 +165,11 @@ export default function GrowthPage({ popup = false }: { popup?: boolean } = {}) 
   const section = <T,>(key: string): T | undefined => snap?.snapshot?.sections?.[key]?.data as T | undefined
 
   const streak = section<{ streak?: { days?: number; month_total_days?: number; next_tier?: number; next_tier_remaining?: number } }>('streak')
-  const redemption = section<{ tiers?: { tier: number; days: number; credit: number; energy: number; cards: number; chances: number }[]; remaining_days?: number }>('streak')
+  const redemption = section<{
+    tiers?: { tier: string; days: number; credit: number; energy: number; cards: number; chances: number }[]
+    remaining_days?: number
+    [k: string]: unknown
+  }>('streak')
   const energy = section<{ balance?: number; total_earned?: number }>('energy')
   const quota = section<{ balance?: number; affordable?: number; cost_per_open?: number }>('quota')
   const profile = section<{ level?: number; level_name?: string; completed?: number; total?: number }>('profile')
@@ -212,14 +217,16 @@ export default function GrowthPage({ popup = false }: { popup?: boolean } = {}) 
             <Button onClick={() => void doRefresh()} loading={!!snap?.refresh?.running}>
               刷新快照
             </Button>
+            <Button onClick={() => setOfficialOpen(true)}>官方领取记录</Button>
           </Space>
         }
       />
 
       {!aid && <Card size="small"><Typography.Text type="secondary">该平台暂无成长计划账号</Typography.Text></Card>}
+      <OfficialRecordsModal aid={aid} open={officialOpen} onClose={() => setOfficialOpen(false)} />
 
       {aid && loading && !snap && (
-        <Card size="small">
+        <Card size="small" style={{ height: '100%' }}>
           <div style={{ textAlign: 'center', padding: 40 }}>
             <Spin size="large" />
           </div>
@@ -229,19 +236,22 @@ export default function GrowthPage({ popup = false }: { popup?: boolean } = {}) 
       {snap && (
         <>
           {/* Hero */}
-          <Card size="small">
+          <Card size="small" style={{ height: '100%' }}>
             <Row align="middle" gutter={16}>
               <Col flex="none">
                 <Avatar size={44} style={{ backgroundColor: '#2E9BFF' }}>
-                  Lv{profile?.level ?? '?'}
+                  {profile?.level ? `Lv${profile.level}` : snap.account.name.slice(0, 1)}
                 </Avatar>
               </Col>
               <Col flex="auto">
                 <Typography.Text strong style={{ fontSize: 16 }}>
-                  {snap.account.name} · {profile?.level_name || `等级 ${profile?.level ?? FMT_EMPTY}`}
+                  {snap.account.name}
+                  {profile?.level_name ? ` · ${profile.level_name}` : ''}
                 </Typography.Text>
                 <Typography.Text type="secondary" style={{ display: 'block', fontSize: 12 }}>
-                  任务进度 {fmtInt(profile?.completed)}/{fmtInt(profile?.total)}
+                  {profile?.completed !== undefined
+                    ? `任务进度 ${fmtInt(profile?.completed)}/${fmtInt(profile?.total)}`
+                    : '等级信息需在官方页完成后同步'}
                   {snap.schedule ? ` · 自动巡检：${snap.schedule.cycle_label}（${snap.schedule.enabled ? '启用' : '停用'}）` : ''}
                 </Typography.Text>
               </Col>
@@ -257,10 +267,10 @@ export default function GrowthPage({ popup = false }: { popup?: boolean } = {}) 
             ]}
           />
 
-          <Row gutter={[12, 12]}>
+          <Row gutter={[12, 12]} align="stretch">
             {/* 盲盒 */}
             <Col xs={24} md={12} xl={6}>
-              <Card size="small" title="惊喜盲盒">
+              <Card size="small" style={{ height: '100%' }} title="惊喜盲盒">
                 <Typography.Text>余额 {fmtCredit(quota?.balance)} · 单开 {fmtCredit(quota?.cost_per_open)}</Typography.Text>
                 <Typography.Text type="secondary" style={{ display: 'block', fontSize: 12 }}>
                   可开 {fmtInt(quota?.affordable)} 次
@@ -272,7 +282,7 @@ export default function GrowthPage({ popup = false }: { popup?: boolean } = {}) 
             </Col>
             {/* Buddy */}
             <Col xs={24} md={12} xl={6}>
-              <Card size="small" title="Buddy 宠物">
+              <Card size="small" style={{ height: '100%' }} title="Buddy 宠物">
                 {buddy?.buddy ? (
                   <>
                     <Space align="center">
@@ -284,6 +294,7 @@ export default function GrowthPage({ popup = false }: { popup?: boolean } = {}) 
                         </Typography.Text>
                       </div>
                     </Space>
+                    {buddies?.count ? (
                     <Button
                       block
                       size="small"
@@ -310,6 +321,7 @@ export default function GrowthPage({ popup = false }: { popup?: boolean } = {}) 
                     >
                       查看图鉴（{fmtInt(buddies?.count)}）
                     </Button>
+                    ) : null}
                   </>
                 ) : (
                   <Typography.Text type="secondary">暂无 Buddy，去开盲盒吧</Typography.Text>
@@ -318,7 +330,7 @@ export default function GrowthPage({ popup = false }: { popup?: boolean } = {}) 
             </Col>
             {/* 旅行 */}
             <Col xs={24} md={12} xl={6}>
-              <Card size="small" title="猫猫旅行">
+              <Card size="small" style={{ height: '100%' }} title="猫猫旅行">
                 <Typography.Text strong>{travel?.location?.name || (travel?.state === 'traveling' ? '旅行中' : FMT_EMPTY)}</Typography.Text>
                 <Typography.Text type="secondary" style={{ display: 'block', fontSize: 12 }}>
                   {travel?.location?.duration_hours ? `预计 ${travel.location.duration_hours} 小时` : ''}
@@ -332,7 +344,7 @@ export default function GrowthPage({ popup = false }: { popup?: boolean } = {}) 
             </Col>
             {/* 打卡 */}
             <Col xs={24} md={12} xl={6}>
-              <Card size="small" title="每日打卡">
+              <Card size="small" style={{ height: '100%' }} title="每日打卡">
                 <Typography.Text strong>{checkin?.today_checked_in ? '今日已打卡' : '今日未打卡'}</Typography.Text>
                 <Typography.Text type="secondary" style={{ display: 'block', fontSize: 12 }}>
                   奖励 {fmtCredit(checkin?.daily_credit)} · 连续 {fmtInt(checkin?.streak_days)} 天
@@ -354,14 +366,29 @@ export default function GrowthPage({ popup = false }: { popup?: boolean } = {}) 
 
           {/* 连登奖励 */}
           {(redemption?.tiers ?? []).length > 0 && (
-            <Card size="small" title={`连登奖励（本月 ${fmtInt(streak?.streak?.month_total_days)} 天，剩 ${fmtInt(redemption?.remaining_days)} 天）`}>
+            <Card size="small" style={{ height: '100%' }} title={`连登奖励（本月 ${fmtInt(streak?.streak?.month_total_days)} 天，剩 ${fmtInt(redemption?.remaining_days)} 天）`}>
               <Table
                 size="small"
                 rowKey="tier"
                 dataSource={redemption?.tiers ?? []}
                 pagination={false}
                 columns={[
-                  { title: '档位', dataIndex: 'tier', width: 70, render: (v) => <Tag color="processing">{v} 天档</Tag> },
+                  {
+                    title: '档位',
+                    dataIndex: 'tier',
+                    width: 80,
+                    render: (v: string, r: { days: number; [k: string]: unknown }) => {
+                      const status = String((redemption as Record<string, unknown> | undefined)?.[`tier_${v}_status`] ?? '')
+                      const tone = status === 'claimed' || status === 'redeemed' ? 'success' : status === 'available' ? 'processing' : 'default'
+                      const label = status === 'claimed' || status === 'redeemed' ? '已领取' : status === 'available' ? '可领取' : status === 'locked' ? '未达成' : status || FMT_EMPTY
+                      return (
+                        <Space size={4} wrap={false}>
+                          <Tag color={tone}>{r.days} 天</Tag>
+                          <Typography.Text type="secondary" style={{ fontSize: 11 }}>{label}</Typography.Text>
+                        </Space>
+                      )
+                    },
+                  },
                   { title: '需连登', dataIndex: 'days', width: 90, align: 'right', render: (v) => <span className="num">{fmtInt(v)} 天</span> },
                   { title: '积分', dataIndex: 'credit', width: 90, align: 'right', render: (v) => <span className="num">{fmtCredit(v)}</span> },
                   { title: '能量', dataIndex: 'energy', width: 90, align: 'right', render: (v) => <span className="num">{fmtCredit(v)}</span> },
@@ -369,15 +396,20 @@ export default function GrowthPage({ popup = false }: { popup?: boolean } = {}) 
                   { title: '抽奖', dataIndex: 'chances', width: 80, align: 'right', render: (v) => <span className="num">{fmtInt(v)}</span> },
                   {
                     title: '操作',
-                    width: 100,
-                    render: (_, r) =>
-                      (streak?.streak?.days ?? 0) >= r.days ? (
-                        <Button size="small" type="primary" loading={acting} onClick={() => doAction('redeem', `兑换 ${r.tier} 天档奖励？`, r.tier)}>
-                          兑换
-                        </Button>
-                      ) : (
-                        <Tag>还差 {fmtInt(r.days - (streak?.streak?.days ?? 0))} 天</Tag>
-                      ),
+                    width: 110,
+                    render: (_, r) => {
+                      const tier = String(r.tier)
+                      const status = String((redemption as Record<string, unknown> | undefined)?.[`tier_${tier}_status`] ?? '')
+                      if (status === 'claimed' || status === 'redeemed') return <Tag color="success">已领取</Tag>
+                      if (status === 'available')
+                        return (
+                          <Button size="small" type="primary" loading={acting} onClick={() => doAction('redeem', `兑换 ${r.days} 天档奖励？`, tier)}>
+                            领取
+                          </Button>
+                        )
+                      const left = Math.max(0, Number(r.days) - Number(streak?.streak?.days ?? 0))
+                      return <Tag>还差 {fmtInt(Number(left))} 天</Tag>
+                    },
                   },
                 ]}
               />
@@ -386,7 +418,7 @@ export default function GrowthPage({ popup = false }: { popup?: boolean } = {}) 
 
           {/* 月活跃热力图 */}
           {heatCells.length > 0 && (
-            <Card size="small" title="月活跃地图">
+            <Card size="small" style={{ height: '100%' }} title="月活跃地图">
               <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 18px)`, gap: 4 }}>
                 {heatCells.map((c) => {
                   const intensity = c.score / maxScore
@@ -409,7 +441,7 @@ export default function GrowthPage({ popup = false }: { popup?: boolean } = {}) 
           )}
 
           {/* 执行记录 */}
-          <Card size="small" title="执行与领取记录">
+          <Card size="small" style={{ height: '100%' }} title="执行与领取记录">
             <Table
               size="small"
               rowKey="id"
@@ -446,5 +478,69 @@ export default function GrowthPage({ popup = false }: { popup?: boolean } = {}) 
         </>
       )}
     </Space>
+  )
+}
+
+
+/** 官方领取记录（travel / draws / rewards 三类，服务端分页） */
+function OfficialRecordsModal({ aid, open, onClose }: { aid: number | null; open: boolean; onClose: () => void }) {
+  const [kind, setKind] = useState<'travel' | 'draws' | 'rewards'>('travel')
+  const [rows, setRows] = useState<Record<string, unknown>[]>([])
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (!open || !aid) return
+    setLoading(true)
+    api<{ items: Record<string, unknown>[]; total?: number }>(
+      `/api/growth-center/accounts/${aid}/official-records?kind=${kind}&page=${page}`,
+    )
+      .then((r) => {
+        setRows(r.items ?? [])
+        setTotal(r.total ?? r.items?.length ?? 0)
+      })
+      .catch(() => setRows([]))
+      .finally(() => setLoading(false))
+  }, [open, aid, kind, page])
+
+  const cols = rows[0]
+    ? Object.keys(rows[0])
+        .filter((k) => typeof rows[0][k] !== 'object')
+        .slice(0, 7)
+        .map((k) => ({
+          title: k,
+          dataIndex: k,
+          ellipsis: true,
+          render: (v: unknown) => (typeof v === 'object' ? JSON.stringify(v) : String(v ?? FMT_EMPTY)),
+        }))
+    : []
+
+  return (
+    <Modal title="官方领取记录" open={open} onCancel={onClose} footer={null} width={780}>
+      <Space direction="vertical" size={8} style={{ width: '100%' }}>
+        <Tabs
+          activeKey={kind}
+          onChange={(k) => {
+            setKind(k as typeof kind)
+            setPage(1)
+          }}
+          items={[
+            { key: 'travel', label: '猫猫旅行' },
+            { key: 'draws', label: '抽奖记录' },
+            { key: 'rewards', label: '奖励领取' },
+          ]}
+        />
+        <Table
+          size="small"
+          scroll={{ x: 'max-content' }}
+          rowKey={(_, i) => String(i)}
+          loading={loading}
+          dataSource={rows}
+          pagination={{ current: page, pageSize: 10, total, onChange: (p) => setPage(p), showSizeChanger: false, showTotal: (t) => `共 ${t} 条` }}
+          columns={cols}
+        />
+      </Space>
+    </Modal>
   )
 }

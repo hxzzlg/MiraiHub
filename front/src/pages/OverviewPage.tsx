@@ -157,7 +157,7 @@ export default function OverviewPage() {
         ))}
 
       {/* 运行状态条 */}
-      <Card size="small">
+      <Card size="small" style={{ height: '100%' }}>
         <Space wrap size={24}>
           <Tag color="success">服务运行中</Tag>
           <Typography.Text>
@@ -177,9 +177,9 @@ export default function OverviewPage() {
       </Card>
 
       {/* 卡片墙 */}
-      <Row gutter={[12, 12]}>
+      <Row gutter={[12, 12]} align="stretch">
         <Col xs={24} md={12} xl={6}>
-          <Card size="small" title="剩余额度" extra={<Tooltip title={`已用 ${fmtPct(ratio, 1)}`}><span /></Tooltip>}>
+          <Card size="small" style={{ height: '100%' }} title="剩余额度" extra={<Tooltip title={`已用 ${fmtPct(ratio, 1)}`}><span /></Tooltip>}>
             <Typography.Title level={3} style={{ margin: 0 }}>
               {fmtCredit(data?.accounts.balance_remain)}
             </Typography.Title>
@@ -196,7 +196,7 @@ export default function OverviewPage() {
           </Card>
         </Col>
         <Col xs={24} md={12} xl={6}>
-          <Card size="small" title={`用量（${usageDays}）`}>
+          <Card size="small" style={{ height: '100%' }} title={`用量（${usageDays}）`}>
             <Typography.Title level={3} style={{ margin: 0 }}>
               {fmtNum(win?.requests ?? null)}
             </Typography.Title>
@@ -209,7 +209,7 @@ export default function OverviewPage() {
           </Card>
         </Col>
         <Col xs={24} md={12} xl={6}>
-          <Card size="small" title="缓存命中率">
+          <Card size="small" style={{ height: '100%' }} title="缓存命中率">
             <Typography.Title level={3} style={{ margin: 0 }}>
               {fmtPct(data?.cache.rate ?? null, 1)}
             </Typography.Title>
@@ -219,7 +219,7 @@ export default function OverviewPage() {
           </Card>
         </Col>
         <Col xs={24} md={12} xl={6}>
-          <Card size="small" title="账号监测">
+          <Card size="small" style={{ height: '100%' }} title="账号监测">
             <Typography.Title level={3} style={{ margin: 0 }}>
               {fmtInt(data?.monitor.active)}
               <Typography.Text type="secondary" style={{ fontSize: 13, fontWeight: 400 }}>
@@ -236,9 +236,9 @@ export default function OverviewPage() {
         </Col>
       </Row>
 
-      <Row gutter={[12, 12]}>
+      <Row gutter={[12, 12]} align="stretch">
         <Col xs={24} xl={14}>
-          <Card size="small" title="异常账号">
+          <Card size="small" style={{ height: '100%' }} title="异常账号">
             <Table
               size="small"
               rowKey="id"
@@ -267,7 +267,7 @@ export default function OverviewPage() {
           </Card>
         </Col>
         <Col xs={24} xl={10}>
-          <Card size="small" title="平台矩阵" extra={<Typography.Text type="secondary" style={{ fontSize: 12 }}>点击切换统计口径</Typography.Text>}>
+          <Card size="small" style={{ height: '100%' }} title="平台矩阵" extra={<Typography.Text type="secondary" style={{ fontSize: 12 }}>点击切换统计口径</Typography.Text>}>
             <Row gutter={[8, 8]}>
               {platforms.map((p: PlatformSpec) => (
                 <Col key={p.id} xs={12}>

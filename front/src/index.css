@@ -54,3 +54,19 @@ body {
 .console-sider::-webkit-scrollbar {
   display: none;
 }
+
+/* ===== 移动端适配 ===== */
+/* Modal 在窄屏不溢出 */
+.ant-modal {
+  max-width: calc(100vw - 24px);
+}
+@media (max-width: 768px) {
+  .ant-modal {
+    margin: 12px auto;
+    top: 24px;
+  }
+  /* 页面内边距收窄 */
+  .ant-layout-content {
+    padding: 10px !important;
+  }
+}

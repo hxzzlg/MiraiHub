@@ -130,25 +130,25 @@ export default function GatewayPage() {
       />
 
       {/* 调度策略 */}
-      <Card size="small" title="调度策略">
-        <Row gutter={[8, 8]}>
+      <Card size="small" style={{ height: '100%' }} title="调度策略">
+        <Row gutter={[8, 8]} align="stretch">
           {(config?.strategies ?? []).map((s) => (
             <Col key={s.value} xs={24} md={12} xl={8}>
               <Card
                 size="small"
                 hoverable
+                style={{ height: '100%', ...(config?.strategy === s.value ? { borderColor: '#2E9BFF' } : {}) }}
                 onClick={() => void saveConfig({ strategy: s.value })}
-                style={config?.strategy === s.value ? { borderColor: '#2E9BFF' } : undefined}
               >
-                <Space align="start">
-                  {config?.strategy === s.value ? <Tag color="processing">当前</Tag> : null}
-                  <div>
+                <div>
+                  <Space size={6} align="center">
                     <Typography.Text strong>{s.label}</Typography.Text>
-                    <Typography.Paragraph type="secondary" style={{ fontSize: 12, margin: 0 }}>
-                      {s.description}
-                    </Typography.Paragraph>
-                  </div>
-                </Space>
+                    {config?.strategy === s.value ? <Tag color="processing" style={{ margin: 0 }}>当前</Tag> : null}
+                  </Space>
+                  <Typography.Paragraph type="secondary" style={{ fontSize: 12, margin: 0 }}>
+                    {s.description}
+                  </Typography.Paragraph>
+                </div>
               </Card>
             </Col>
           ))}
@@ -165,7 +165,7 @@ export default function GatewayPage() {
         </Row>
       </Card>
 
-      <Row gutter={[12, 12]}>
+      <Row gutter={[12, 12]} align="stretch">
         <Col xs={24} xl={14}>
           <Card
             size="small"
@@ -180,7 +180,7 @@ export default function GatewayPage() {
           </Card>
         </Col>
         <Col xs={24} xl={10}>
-          <Card size="small" title="当前调度顺序" extra={config?.strategy === 'priority' ? <Typography.Text type="secondary" style={{ fontSize: 12 }}>拖动行调整优先级</Typography.Text> : <Typography.Text type="secondary" style={{ fontSize: 12 }}>切换到「优先级」策略后可拖动排序</Typography.Text>}>
+          <Card size="small" style={{ height: '100%' }} title="当前调度顺序" extra={config?.strategy === 'priority' ? <Typography.Text type="secondary" style={{ fontSize: 12 }}>拖动行调整优先级</Typography.Text> : <Typography.Text type="secondary" style={{ fontSize: 12 }}>切换到「优先级」策略后可拖动排序</Typography.Text>}>
             <Table
               size="small"
               rowKey="platform"
@@ -223,9 +223,9 @@ export default function GatewayPage() {
         </Col>
       </Row>
 
-      <Row gutter={[12, 12]}>
-        <Col xs={24} xl={12}>
-          <Card size="small" title="平台速度（TTFT / TPS，近 24h）">
+      <Row gutter={[12, 12]} align="stretch">
+        <Col span={24}>
+          <Card size="small" style={{ height: '100%' }} title="平台速度（TTFT / TPS，近 24h）">
             <Table
               size="small"
               rowKey={(r) => String(r.platform ?? r.label)}

@@ -63,7 +63,18 @@ function rowFromItem(item: unknown, i: number): JobRow | null {
           : okRaw === 'failed' || okRaw === 'error'
             ? false
             : null
-    const detail = String(o.message ?? o.detail ?? o.msg ?? o.error ?? '')
+    let detail = String(o.message ?? o.detail ?? o.msg ?? o.error ?? '')
+    // 健康检查 job：三段上游检查（积分 / 模型列表 / 真实对话）摘要
+    if (o.stages && typeof o.stages === 'object') {
+      const st = o.stages as Record<string, { ok?: boolean; status?: number; total?: number; remain?: number; count?: number; model?: string }>
+      const parts = Object.entries(st).map(([k, v]) => {
+        const nameMap: Record<string, string> = { balance: '积分', models: '模型列表', conversation: '真实对话' }
+        const label = nameMap[k] ?? k
+        const extra = k === 'balance' && v.total !== undefined ? ` 剩 ${v.remain ?? '—'}` : k === 'models' && v.count !== undefined ? ` ${v.count} 个` : k === 'conversation' && v.model ? ` ${v.model}` : ''
+        return `${label}${v.ok === false ? '✗' : '✓'}${extra}`
+      })
+      detail = parts.join(' · ') || detail
+    }
     return { key: `o${i}`, label, ok, detail: detail || undefined }
   }
   return null

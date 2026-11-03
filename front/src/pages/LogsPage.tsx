@@ -346,6 +346,7 @@ export default function LogsPage() {
       {/* 日志表 */}
       <Card size="small">
         <Table
+          scroll={{ x: 'max-content' }}
           size="small"
           rowKey="id"
           loading={loading}

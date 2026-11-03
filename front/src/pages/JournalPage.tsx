@@ -71,7 +71,7 @@ export default function JournalPage() {
         onRefresh={() => void load()}
         refreshing={loading}
       />
-      <Card size="small">
+      <Card size="small" style={{ height: '100%' }}>
         <Space wrap size={12}>
           <Segmented
             value={kind}
@@ -118,7 +118,7 @@ export default function JournalPage() {
           />
         </Space>
       </Card>
-      <Card size="small">
+      <Card size="small" style={{ height: '100%' }}>
         {data?.importing && (
           <Typography.Text type="warning" style={{ display: 'block', marginBottom: 8 }}>
             正在导入历史流水，数据可能不完整…

@@ -130,7 +130,7 @@ export default function UsagePage() {
         refreshing={loading}
       />
 
-      <Card size="small">
+      <Card size="small" style={{ height: '100%' }}>
         <Space wrap size={12}>
           <Segmented value={days} onChange={(v) => { setDays(v as number); setRange(null) }} options={DAYS_OPTIONS} />
           <RangePicker value={range} onChange={(v) => setRange(v as [Dayjs | null, Dayjs | null] | null)} />
@@ -168,39 +168,39 @@ export default function UsagePage() {
         ]}
       />
 
-      <Card size="small" title="Token 趋势">
+      <Card size="small" style={{ height: '100%' }} title="Token 趋势">
         <TrendChart data={trendData} loading={loading} height={280} />
       </Card>
 
-      <Row gutter={[12, 12]}>
+      <Row gutter={[12, 12]} align="stretch">
         <Col xs={24} md={12} xl={8}>
-          <Card size="small" title="模型分布">
+          <Card size="small" style={{ height: '100%' }} title="模型分布">
             <DonutChart data={toSlices(data?.by_model)} loading={loading} />
           </Card>
         </Col>
         <Col xs={24} md={12} xl={8}>
-          <Card size="small" title="Key 分布">
+          <Card size="small" style={{ height: '100%' }} title="Key 分布">
             <DonutChart data={toSlices(data?.by_key)} loading={loading} />
           </Card>
         </Col>
         <Col xs={24} md={12} xl={8}>
-          <Card size="small" title="端点分布">
+          <Card size="small" style={{ height: '100%' }} title="端点分布">
             <DonutChart data={toSlices(data?.by_endpoint)} loading={loading} />
           </Card>
         </Col>
         <Col xs={24} md={12} xl={8}>
-          <Card size="small" title="账号分布">
+          <Card size="small" style={{ height: '100%' }} title="账号分布">
             <DonutChart data={toSlices(data?.by_account)} loading={loading} />
           </Card>
         </Col>
         <Col xs={24} md={12} xl={8}>
-          <Card size="small" title="请求结果分布">
+          <Card size="small" style={{ height: '100%' }} title="请求结果分布">
             <DonutChart data={toSlices(data?.by_result)} loading={loading} />
           </Card>
         </Col>
         {accountId && (
           <Col xs={24} md={12} xl={8}>
-            <Card size="small" title="所选账号 · 模型用量与限额">
+            <Card size="small" style={{ height: '100%' }} title="所选账号 · 模型用量与限额">
               <Table
                 size="small"
                 rowKey="model"
