@@ -1,9 +1,10 @@
 import { App as AntdApp, Button, Card, Input, Popconfirm, Segmented, Select, Space, Switch, Table, Tag, Tooltip, Typography } from 'antd'
-import { SyncOutlined } from '@ant-design/icons'
+import { CopyOutlined, SyncOutlined } from '@ant-design/icons'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api } from '../api/client'
 import { usePlatform } from '../context/PlatformContext'
 import PageHeader from '../components/PageHeader'
+import { copyText } from '../utils/clipboard'
 import { FMT_EMPTY, fmtDuration, fmtInt, fmtPct } from '../utils/format'
 
 interface ModelItem {
@@ -298,6 +299,20 @@ export default function ModelsPage() {
                 render: (v, m: ModelItem) => (
                   <Space size={4}>
                     <Typography.Text strong>{v}</Typography.Text>
+                    <Tooltip title="复制模型名称">
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<CopyOutlined />}
+                        style={{ padding: 0, width: 22, height: 22 }}
+                        onClick={async (e) => {
+                          e.stopPropagation()
+                          const ok = await copyText(m.upstream_id || m.model_id)
+                          if (ok) message.success(`已复制：${m.upstream_id || m.model_id}`)
+                          else message.error('复制失败')
+                        }}
+                      />
+                    </Tooltip>
                     {m.realm && <Tag style={{ fontSize: 11 }}>{m.realm}</Tag>}
                     {m.description && (
                       <Tooltip title={m.description}>

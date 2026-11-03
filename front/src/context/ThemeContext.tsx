@@ -10,9 +10,15 @@ interface ThemeCtx {
 const Ctx = createContext<ThemeCtx>({ mode: 'light', toggle: () => {} })
 const LS_KEY = 'wb_console_theme'
 
+function systemMode(): ThemeMode {
+  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
+
 function initialMode(): ThemeMode {
   const saved = localStorage.getItem(LS_KEY)
-  return saved === 'dark' ? 'dark' : 'light'
+  // 未手动切换过 → 跟随系统；手动切换后记住用户选择
+  if (saved !== 'dark' && saved !== 'light') return systemMode()
+  return saved
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
@@ -21,6 +27,16 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     document.documentElement.dataset.theme = mode
   }, [mode])
+
+  // 系统深浅色变化：仅在用户未手动选择过主题时自动跟随
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const onChange = (e: MediaQueryListEvent) => {
+      if (!localStorage.getItem(LS_KEY)) setMode(e.matches ? 'dark' : 'light')
+    }
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
 
   // 跨标签页同步（storage 事件）
   useEffect(() => {
