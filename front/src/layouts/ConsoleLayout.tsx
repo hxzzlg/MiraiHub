@@ -184,6 +184,7 @@ export default function ConsoleLayout() {
         collapsedWidth={64}
         collapsed={collapsed}
         theme="light"
+        className="console-sider"
         breakpoint="lg"
         onBreakpoint={(broken) => setCollapsed(broken)}
         style={{ borderInlineEnd: '1px solid rgba(128,128,128,0.15)', position: 'sticky', top: 0, height: '100vh', overflow: 'auto' }}
