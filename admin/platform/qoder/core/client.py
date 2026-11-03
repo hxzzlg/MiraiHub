@@ -196,14 +196,43 @@ def exchange_pat(pat: str, realm: str) -> dict:
         headers=endpoints.open_api_headers(None))
 
 
+def _bare_refresh(refresh_token: str) -> str:
+    """上游只认裸 refresh 串。
+
+    本项目历史上把 refresh 存成 `<token>|<user_id>|<machine_id>`（参考
+    Agent2API 的格式），但 `/api/v1/*Token/refresh` 收到带 `|` 的整串会直接
+    401（2026-11-03 实测：带后缀 401，只取第一段 200）。这里统一剥掉后缀，
+    老账号不用改库也能续期。
+    """
+    text = str(refresh_token or "").strip()
+    if "|" in text:
+        return text.split("|", 1)[0]
+    return text
+
+
+def _normalize_fresh(payload: dict, kind: str) -> dict:
+    """把续期响应归一成 `{token, refresh_token, expires_at}`。
+
+    设备流返回的字段叫 **`device_token`**（不是 `token`），
+    直接取 `token` 会拿到空串，然后账号被写成空 token 直接报废。
+    """
+    data = dict(payload or {})
+    if not data.get("token"):
+        for key in (kind + "_token", "device_token", "job_token", "access_token"):
+            if data.get(key):
+                data["token"] = data[key]
+                break
+    return data
+
+
 def refresh_job_token(refresh_token: str, realm: str) -> dict:
     """作业令牌续期（`jrt-` → 新 `jt-`）。"""
     conf = endpoints.REGIONS.get(realm) or endpoints.REGIONS["cn"]
-    return request_json(
+    return _normalize_fresh(request_json(
         conf["open_api"] + endpoints.JOB_REFRESH_PATH,
         action="作业令牌续期", method="POST",
-        body={"refresh_token": refresh_token},
-        headers=endpoints.refresh_headers())
+        body={"refresh_token": _bare_refresh(refresh_token)},
+        headers=endpoints.refresh_headers()), "job")
 
 
 def refresh_device_token(refresh_token: str, realm: str) -> dict:
@@ -211,13 +240,15 @@ def refresh_device_token(refresh_token: str, realm: str) -> dict:
 
     与作业令牌端点**不可互换**：把 `drt-` 交给 jobToken/refresh、
     或把 `jrt-` 交给 deviceToken/refresh，上游都按「令牌无效」拒绝。
+
+    refresh 串必须**不带** `|user_id|machine_id` 后缀，见 `_bare_refresh`。
     """
     conf = endpoints.REGIONS.get(realm) or endpoints.REGIONS["cn"]
-    return request_json(
+    return _normalize_fresh(request_json(
         conf["open_api"] + endpoints.DEVICE_REFRESH_PATH,
         action="设备令牌续期", method="POST",
-        body={"refresh_token": refresh_token},
-        headers=endpoints.refresh_headers())
+        body={"refresh_token": _bare_refresh(refresh_token)},
+        headers=endpoints.refresh_headers()), "device")
 
 
 # ---------------------------------------------------------------------------

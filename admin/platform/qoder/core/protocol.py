@@ -32,8 +32,10 @@ import uuid
 CHAT_TASK = "common"
 #: 上游 `session_type`
 SESSION_TYPE = "agent"
-#: 上游 `agent_id`
-AGENT_ID = "agent"
+#: 上游 `agent_id`。国际版的 agent_router 只认 `agent_common`
+#: （`agent` 会立刻 400「None flow nodes found for router agent_router」）；
+#: 中国版两个值都通。统一写成 `agent_common`（与桌面端 / magpie 一致）。
+AGENT_ID = "agent_common"
 #: 输出上限（上游对这个值有上限，超了会被截断）
 MAX_OUTPUT_TOKENS = 32768
 
