@@ -1,11 +1,17 @@
-"""Build an arm64 APK with an explicitly staged backend; no local credentials."""
+"""Build an arm64 APK with an explicitly staged backend; no local credentials.
+
+前端已迁移为 Vite + React SPA（front/）：APK 不再做 index.html 正则改写
+（旧 mobile_html() 的字符串手术随旧控制台一起下线），改为：
+  1. 拷贝 front/dist 构建产物（需先 `npm run build`）；
+  2. 安卓专属 UI 由 SPA 运行时按 `window.WBAndroid` 桥自适应
+     （隐藏扫描/注入入口，导航出现"安卓设置"页）。
+"""
 from __future__ import annotations
 
 import argparse
 import hashlib
 import json
 import os
-import re
 import secrets
 import shutil
 import subprocess
@@ -31,124 +37,17 @@ def check_runtime() -> None:
                     '--source-dir', str(STAGING)], cwd=ROOT, check=True)
 
 
-class MobileHtmlError(RuntimeError):
-    """移动端页面改写没有命中预期标记。
-
-    为什么必须报错而不是静默跳过：历史上这里是一条
-    `html.replace('<link ... /static/desktop.css />', ...)` —— 后来控制台把样式
-    改挂到 `/admin/assets/desktop.css?v=…`，这条替换就再也没命中过，而
-    `str.replace` 找不到目标时**不抛异常**。结果 mobile.css 从来没被打进
-    APK，设置页（只在移动端存在的那一版）整屏没有样式。构建时发现不了，
-    只有装到手机上才看得见。
-    """
-
-
-def _replace_once(html: str, old: str, new: str, label: str) -> str:
-    if old not in html:
-        raise MobileHtmlError(
-            f"移动端改写未命中：{label}（期望片段 {old!r}）。"
-            "控制台模板改过结构后，请同步更新 scripts/build_android.py。")
-    return html.replace(old, new, 1)
-
-
-def _sub_once(html: str, pattern: str, repl, label: str, flags=re.S) -> str:
-    result, count = re.subn(pattern, repl, html, flags=flags)
-    if not count:
-        raise MobileHtmlError(
-            f"移动端改写未命中：{label}（期望正则 {pattern!r}）。"
-            "控制台模板改过结构后，请同步更新 scripts/build_android.py。")
-    return result
-
-
-def mobile_html(html: str) -> str:
-    # --- 移除桌面专属面板 -------------------------------------------------
-    #
-    # 导航已经改成「分组按钮」：`接入` 这个按钮同时承载 client / sync / alerts
-    # 三个面板，而移动端只保留 sync（作为「设置」）、要砍掉 client 与 settings。
-    # 所以这里不能直接删掉整个 `接入` 按钮（那会把设置入口一起删掉，手机上将
-    # 完全没有设置页），而是先把它**改写成独立的「设置」项**，再交给后面的
-    # 「移除 client 导航项」逻辑处理真正的桌面专属项。
-    has_grouped_nav = 'data-group-tabs="client,sync' in html
-    if has_grouped_nav:
-        html = _sub_once(
-            html, r'<button\b[^>]*data-tab="client"[^>]*data-group-tabs="[^"]*"[^>]*>',
-            '<button class="side-item" data-tab="sync">',
-            '「接入」分组 → 移动端「设置」项')
-        # 文案：把按钮上的「接入」换成「设置」，与移动端设置页一致。
-        html = _sub_once(
-            html, r'(data-tab="sync">.*?)</button>',
-            lambda m: re.sub(r'(</svg>)\s*接入\s*$', r'\1 设置', m.group(1)) + '</button>',
-            '「接入」文案 → 「设置」')
-    else:
-        html = _sub_once(html, r'<button\b[^>]*data-tab="client".*?</button>',
-                         '', '移除「客户端参数」导航项')
-        html = _replace_once(html, '</svg> 同步设置</button>', '</svg> 设置</button>',
-                             '同步设置 → 设置（导航文案）')
-    html = _sub_once(html, r'<section id="panel-client".*?</section>',
-                     '', '移除「客户端参数」面板')
-    html = _sub_once(html, r'<section id="panel-settings".*?</section>',
-                     '', '移除「管理员设置」面板')
-    settings = (ROOT / "android/web/settings.html").read_text(encoding="utf-8")
-    html = _sub_once(html, r'<section id="panel-sync".*?</section>',
-                     lambda _: settings, '用移动端设置页替换「同步设置」')
-
-    # --- 移除桌面专属脚本 -------------------------------------------------
-    html = _sub_once(html, r'/\* ==================== 线上同步设置.*?'
-                           r'(?=/\* ==================== 客户端兼容参数)',
-                     'function loadSyncConfig() {}\n\n', '替换「线上同步设置」脚本')
-    html = _sub_once(html, r'<button\b[^>]*onclick="scanLocal\(\)".*?</button>',
-                     '', '移除「扫描本机」按钮')
-    html = _sub_once(html, r'^.*\[`injectAcc\(.*\n', '', '移除「注入本机」菜单项', flags=re.M)
-    html = _sub_once(html, r'async function injectAcc\(.*?(?=/\* 猫猫旅行)',
-                     '', '移除 injectAcc 实现')
-    html = _sub_once(html, r'/\* 扫描本机账号.*?(?=async function refreshAll\()',
-                     '', '移除扫描本机账号实现')
-    html = _sub_once(html, r'/\* ==================== 客户端兼容参数.*?'
-                           r'(?=/\* ==================== 设置)',
-                     '', '移除客户端参数脚本')
-    html = _replace_once(html, ',"client"', '', 'TABS 去掉 client')
-    html = _replace_once(html, ',"settings"', '', 'TABS 去掉 settings')
-    html = _sub_once(html, r'^.*if \(name === "client"\).*\n', '', '去掉 client 面板加载',
-                     flags=re.M)
-    html = _sub_once(html, r'^.*if \(name === "settings"\).*\n', '', '去掉 settings 面板加载',
-                     flags=re.M)
-    html = _sub_once(html, r'<button\b[^>]*data-tab="settings".*?</button>',
-                     '', '移除「设置」导航项（由移动端设置页接管）')
-
-    # --- 文案与凭证提示 ---------------------------------------------------
-    html = _replace_once(html, '登录新账号，或从本机与备份中恢复已有账号。',
-                         '手机号登录或浏览器授权，账号保存在这台手机。', '账号页文案')
-    html = _replace_once(html, '新版加密、旧版明文及 .info.bak-时间戳备份',
-                         '旧版明文及 .info.bak-时间戳备份', '导入说明文案')
-    credential_note = ('<p class="text-xs text-slate-500 mb-2">新版 Windows 加密凭证请先在'
-                       '电脑账号管理页导出“系统明文备份”后再导入，或使用手机号授权登录。</p>')
-    for marker in ('<input id="upFile"', '<textarea id="reauthJson"'):
-        html = _replace_once(html, marker, credential_note + marker,
-                             f'凭证提示（{marker}）')
-
-    # --- 挂上移动端样式与脚本 ---------------------------------------------
-    #
-    # 用 `</head>` 做锚点而不是匹配某条 `<link>`：后者会随控制台改版漂移
-    # （这次就是 `/static/desktop.css` → `/admin/assets/desktop.css?v=…`）。
-    # mobile.css 必须排在全部桌面样式之后，才能覆盖 `.mobile-mode` 下的规则。
-    html = _replace_once(
-        html, '</head>',
-        '<link rel="stylesheet" href="/static/mobile.css" />\n</head>',
-        '注入 mobile.css')
-    html = _replace_once(
-        html, '</body>',
-        '<script src="/static/mobile.js"></script>'
-        '<script src="/static/mobile_settings.js"></script>\n</body>',
-        '注入 mobile.js / mobile_settings.js')
-    return html
-
-
 def prepare() -> None:
     # Do not allow a symlink or changed working directory to redirect recursive cleanup.
     staging = STAGING.resolve()
     allowed = (ROOT / "android/app/build").resolve()
     if not staging.is_relative_to(allowed) or staging != allowed / "generated/python":
         raise RuntimeError("Unexpected Android staging path")
+    dist_index = ROOT / "front" / "dist" / "index.html"
+    if not dist_index.is_file():
+        raise RuntimeError(
+            "front/dist/index.html 不存在：请先在 front/ 下运行 `npm install && npm run build`。"
+            "APK 打包不再改写 HTML，直接内置前端构建产物。")
     if staging.exists():
         shutil.rmtree(staging)
     staging.mkdir(parents=True)
@@ -169,17 +68,12 @@ def prepare() -> None:
     metadata = json.loads((ROOT / "desktop/version.json").read_text(encoding="utf-8"))
     metadata["asset"] = "miraihub-{version}-android-arm64.apk"
     (staging / "desktop/version.json").write_text(json.dumps(metadata), encoding="utf-8")
-    shutil.copytree(ROOT / "admin/static", staging / "admin/static")
-    shutil.copytree(ROOT / "admin/console", staging / "admin/console")
     shutil.copytree(ROOT / "admin/data", staging / "admin/data")
-    index = staging / "admin/console/index.html"
-    index.write_text(mobile_html(index.read_text(encoding="utf-8")), encoding="utf-8")
-    for name in ("mobile.js", "mobile.css", "mobile_settings.js"):
-        shutil.copy2(ROOT / "android/web" / name, staging / "admin/static" / name)
+    shutil.copytree(ROOT / "front/dist", staging / "front/dist")
     for name in ("android_runtime.py", "mobile_http.py"):
         shutil.copy2(ROOT / "android/python" / name, staging / name)
     shutil.copy2(ROOT / "LICENSE", staging / "LICENSE")
-    print("Prepared mobile backend and UI (no desktop parameter page or scan tools)")
+    print("Prepared mobile backend and SPA frontend (android bridge adapts at runtime)")
 
 
 def main() -> None:

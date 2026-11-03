@@ -22,6 +22,10 @@ def main():
         raise SystemExit("Use Windows x64 with a 64-bit Python interpreter")
     if sys.maxsize <= 2**32:
         raise SystemExit("A 64-bit Python interpreter is required")
+    # 前端构建产物必须先就位（miraihub.spec 会把 front/dist 打进包）
+    dist_index = ROOT / "front" / "dist" / "index.html"
+    if not dist_index.is_file():
+        raise SystemExit("front/dist/index.html 不存在：请先在 front/ 下运行 `npm install && npm run build`")
     subprocess.run([sys.executable, str(ROOT / 'scripts/check_runtime.py')], cwd=ROOT, check=True)
     import resvg_py
     from PIL import Image

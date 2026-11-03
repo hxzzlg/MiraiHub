@@ -23,6 +23,7 @@ logs/
 *.pid
 .tmp_srv.err
 .tmp_srv.out
+data/
 
 
 # ===== 压缩包备份 =====
