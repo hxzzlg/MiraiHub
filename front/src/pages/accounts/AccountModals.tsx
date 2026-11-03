@@ -23,7 +23,7 @@ export function ManualAddModal({ open, onClose, onDone }: { open: boolean; onClo
     }
     setBusy(true)
     try {
-      await api('/api/accounts', { method: 'POST', body: { name: name.trim() || undefined, auth_json: auth } })
+      await api('/api/accounts', { method: 'POST', body: { name: name.trim() || undefined, auth_json: typeof auth === 'string' ? auth : JSON.stringify(auth) } })
       message.success('账号已添加')
       setJson('')
       setName('')
@@ -65,13 +65,24 @@ export function ImportModal({ open, onClose, onDone }: { open: boolean; onClose:
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
 
-  const parseItems = (raw: string): { name?: string; auth_json: unknown }[] => {
-    const items: { name?: string; auth_json: unknown }[] = []
+  /**
+   * 解析导入内容为批量条目。后端 AccountIn.auth_json 是 **字符串**（JSON 文本），
+   * 因此所有凭证对象都要 JSON.stringify 后再提交。
+   */
+  const parseItems = (raw: string): { name?: string; auth_json: string }[] => {
+    const items: { name?: string; auth_json: string }[] = []
+    const asString = (v: unknown) => (typeof v === 'string' ? v : JSON.stringify(v))
     const trimmed = raw.replace(/^\uFEFF/, '').trim()
     if (!trimmed) return items
     if (trimmed.startsWith('[')) {
       for (const it of JSON.parse(trimmed) as unknown[]) {
-        if (it && typeof it === 'object') items.push(it as { name?: string; auth_json: unknown })
+        if (!it || typeof it !== 'object') continue
+        const o = it as Record<string, unknown>
+        if (o.auth_json !== undefined) {
+          items.push({ ...(o.name !== undefined ? { name: o.name as string } : {}), auth_json: asString(o.auth_json) })
+        } else {
+          items.push({ auth_json: JSON.stringify(o) })
+        }
       }
       return items
     }
@@ -80,13 +91,17 @@ export function ImportModal({ open, onClose, onDone }: { open: boolean; onClose:
       if (!t) continue
       const parsed = JSON.parse(t) as Record<string, unknown>
       if (parsed && typeof parsed === 'object') {
-        items.push(parsed.auth_json ? (parsed as { name?: string; auth_json: unknown }) : { auth_json: parsed })
+        if (parsed.auth_json !== undefined) {
+          items.push({ ...(parsed.name !== undefined ? { name: parsed.name as string } : {}), auth_json: asString(parsed.auth_json) })
+        } else {
+          items.push({ auth_json: JSON.stringify(parsed) })
+        }
       }
     }
     return items
   }
 
-  const submit = async (items: { name?: string; auth_json: unknown }[]) => {
+  const submit = async (items: { name?: string; auth_json: string }[]) => {
     if (!items.length) {
       message.warning('没有可导入的账号')
       return
@@ -98,7 +113,7 @@ export function ImportModal({ open, onClose, onDone }: { open: boolean; onClose:
         body: { items },
         timeout: 120000,
       })
-      message.success(`导入完成：新增 ${fmtInt(r.added)}，更新 ${fmtInt(r.updated)}${r.errors?.length ? `，失败 ${r.errors.length}` : ''}`)
+      message.success(`导入完成：新增 ${fmtInt(r.added ?? 0)}，更新 ${fmtInt(r.updated ?? 0)}${r.errors?.length ? `，失败 ${r.errors.length}` : ''}`)
       setText('')
       onDone?.()
       onClose()
@@ -246,7 +261,7 @@ export function ReauthModal({ account, onClose, onDone }: { account: WbAccount |
     }
     setBusy(true)
     try {
-      await api(`/api/accounts/${account.id}/reauth`, { method: 'POST', body: { auth_json: auth } })
+      await api(`/api/accounts/${account.id}/reauth`, { method: 'POST', body: { auth_json: typeof auth === 'string' ? auth : JSON.stringify(auth) } })
       message.success('凭证已更新')
       onDone?.()
       onClose()

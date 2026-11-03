@@ -59,7 +59,16 @@ async function extractError(resp: Response): Promise<ApiError> {
   let msg = ''
   if (data && typeof data === 'object') {
     const d = data as Record<string, any>
-    msg = d?.error?.message || d?.detail || d?.message || ''
+    if (Array.isArray(d?.detail)) {
+      // FastAPI 422 校验错误：[{loc, msg, type}...]，转成可读文本（最多 5 条）
+      const items = d.detail as { loc?: (string | number)[]; msg?: string }[]
+      const head = items
+        .slice(0, 5)
+        .map((e) => `${(e.loc ?? []).slice(1).join('.') || '参数'}：${e.msg ?? ''}`)
+      msg = head.join('；') + (items.length > 5 ? `（共 ${items.length} 项）` : '')
+    } else {
+      msg = d?.error?.message || (typeof d?.detail === 'string' ? d.detail : '') || d?.message || ''
+    }
   } else if (typeof data === 'string' && data) {
     msg = data.length < 300 ? data : ''
   }
