@@ -14,13 +14,10 @@ import {
   MenuUnfoldOutlined,
   MinusOutlined,
   MobileOutlined,
-  MoonOutlined,
   CloseOutlined,
-  RobotOutlined,
   SaveOutlined,
   SettingOutlined,
   SafetyOutlined,
-  SunOutlined,
   TagsOutlined,
   TeamOutlined,
   ToolOutlined,
@@ -31,9 +28,9 @@ import { App as AntdApp, Avatar, Button, Drawer, Dropdown, Flex, Layout, Menu, S
 import { useEffect, useMemo, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import PlatformLogo from '../components/PlatformLogo'
+import ThemeToggle from '../components/ThemeToggle'
 import { usePlatform } from '../context/PlatformContext'
 import { useAuth } from '../context/AuthContext'
-import { useThemeMode } from '../context/ThemeContext'
 import { isAndroid, isDesktop, nativeWindowAction } from '../bridges/native'
 
 const { Sider, Header, Content } = Layout
@@ -99,10 +96,6 @@ const NAV_GROUPS: { label: string; children: NavItem[] }[] = [
     ],
   },
   {
-    label: '智能体',
-    children: [{ key: 'agent', label: '创作台', icon: <RobotOutlined /> }],
-  },
-  {
     label: '系统',
     children: [
       { key: 'settings', label: '设置', icon: <SettingOutlined /> },
@@ -118,7 +111,6 @@ export default function ConsoleLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const { logout } = useAuth()
-  const { mode, toggle } = useThemeMode()
   const { message } = AntdApp.useApp()
 
   const [collapsed, setCollapsed] = useState(false)
@@ -136,7 +128,7 @@ export default function ConsoleLayout() {
     mq.addEventListener('change', onChange)
     return () => mq.removeEventListener('change', onChange)
   }, [])
-  const { platforms, current, select, loading } = usePlatform()
+  const { platforms, localFeatures, current, select, loading } = usePlatform()
 
   const currentSpec = platforms.find((p) => p.id === current.platform)
   const realmOptions = useMemo(() => {
@@ -176,12 +168,17 @@ export default function ConsoleLayout() {
 
   const menuItems = useMemo(
     () =>
-      [...(androidShell ? [ANDROID_NAV] : []), ...NAV_GROUPS].map((g) => ({
-        type: 'group' as const,
-        label: g.label,
-        children: g.children.map((it) => ({ key: it.key, icon: it.icon, label: it.label })),
-      })),
-    [androidShell],
+      [...(androidShell ? [ANDROID_NAV] : []), ...NAV_GROUPS]
+        .map((g) => ({
+          type: 'group' as const,
+          label: g.label,
+          // 本机客户端功能关闭时隐藏「逆向产物」等依赖本机客户端的入口
+          children: g.children
+            .filter((it) => it.key !== 'app-source' || localFeatures)
+            .map((it) => ({ key: it.key, icon: it.icon, label: it.label })),
+        }))
+        .filter((g) => g.children.length > 0),
+    [androidShell, localFeatures],
   )
 
 
@@ -292,9 +289,8 @@ export default function ConsoleLayout() {
                   </Tooltip>
                 </>
               )}
-              <Tooltip title={mode === 'dark' ? '切换亮色' : '切换暗色'}>
-                <Button type="text" size="small" icon={mode === 'dark' ? <SunOutlined /> : <MoonOutlined />} onClick={toggle} />
-              </Tooltip>
+              {/* 主题组合按钮：浅色 / 深色 / 自适应（跟随系统） */}
+              <ThemeToggle />
               <Dropdown
                 menu={{
                   items: [{ key: 'logout', icon: <LogoutOutlined />, label: '退出登录' }],

@@ -18,6 +18,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from admin.db import get_db
+from admin.platform import transfer
 from admin.platform.loomy.services import accounts as loomy_accounts
 from admin.platform.loomy.services import scan as loomy_scan
 from admin.security import require_admin
@@ -85,6 +86,42 @@ def import_account(body: ImportIn, _: bool = Depends(require_admin),
         raise HTTPException(400, detail=str(exc)) from exc
 
 
+class BatchIn(BaseModel):
+    #: 每条 `{"credential": {...}}`（或直接凭证对象 / auth_json 字符串）。
+    items: list[object] = []
+
+
+@router.post("/batch")
+def batch_import(body: BatchIn, realm: str = "", _: bool = Depends(require_admin),
+                 db: Session = Depends(get_db)):
+    """批量导入凭证（与 WorkBuddy 账号池的批量导入对齐）。"""
+    target = _realm_or_400(realm) or "cn"
+
+    def _one(record: dict) -> bool:
+        payload = dict(record)
+        payload.setdefault("realm", target)
+        existed = transfer.existed_uid(db, "loomy", payload)
+        loomy_accounts.import_record(db, payload)
+        return not existed
+
+    return transfer.batch_import(db, body.items, _one)
+
+
+class ExportIn(BaseModel):
+    ids: list[int] = []
+    include_disabled: bool = False
+
+
+@router.post("/export")
+def export_accounts(body: ExportIn, realm: str = "",
+                    _: bool = Depends(require_admin),
+                    db: Session = Depends(get_db)):
+    """导出账号凭证（JSONL 就绪），可再原样导回 `/batch`。"""
+    return transfer.export_accounts(db, "loomy", _realm_or_400(realm),
+                                    ids=body.ids or None,
+                                    include_disabled=body.include_disabled)
+
+
 @router.get("/accounts")
 def list_accounts(realm: str = "", _: bool = Depends(require_admin),
                   db: Session = Depends(get_db)):
@@ -126,6 +163,11 @@ def usage(realm: str = "", days: int = 30, _: bool = Depends(require_admin),
 @router.post("/checkin")
 def checkin(realm: str = "", _: bool = Depends(require_admin),
             db: Session = Depends(get_db)):
-    """Loomy 没有签到 —— 返回 `supported: False`（不是错误）。"""
-    return {"supported": False,
-            "summary": "Loomy 没有签到接口；额度按对话计量"}
+    """每日签到（POST /points/first-login，幂等；领当日 5000 积分）。
+
+    控制台不再放手动按钮（动作清单里已去掉 checkin），这个端点保留
+    给调度器/脚本用，与 platform_gateway 的 checkin() 同口径。
+    """
+    from admin.platform.loomy.services import checkin as loomy_checkin
+
+    return loomy_checkin.run_daily_checkin(db, None, _realm_or_400(realm))
