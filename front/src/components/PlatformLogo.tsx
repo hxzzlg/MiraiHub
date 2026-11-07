@@ -17,6 +17,16 @@ const RASTER: Record<string, { src: string }> = {
   loomy: { src: loomy256 },
 }
 
+/**
+ * 补充图标：母品牌字标（WPS 灵犀）。
+ * lobe-icons 里没有 wps / kingsoft / wps-office（逐个探测 404），
+ * 按规范用**母品牌字标**，不用几何占位、更不用「加号」。
+ * 字体风格与 FALLBACK 一致（stroke + currentColor），跟随主题变色。
+ */
+const EXTRA: Record<string, string> = {
+  wps: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5l3.5 14L12 9l5.5 10L21 5"></path></svg>',
+}
+
 /** 平台 id → 图标 key：同产品的多个区共用同一图标 */
 const ALIASES: Record<string, string> = {
   trae: 'trae',
@@ -30,6 +40,8 @@ const ALIASES: Record<string, string> = {
   loomy: 'loomy',
   'loomy-cn': 'loomy',
   'loomy-intl': 'loomy',
+  'wps-lingxi': 'wps',
+  'wps_lingxi': 'wps',
 }
 
 /** 兜底：九宫格轮廓（不用「加号」，避免被误解为「新建平台」） */
@@ -39,7 +51,7 @@ const FALLBACK =
 function resolveIcon(id?: string): string {
   const key = String(id ?? '').toLowerCase()
   const k = ALIASES[key] ?? key
-  return ICONS[k] ?? (RASTER[k] ? `<img src="${RASTER[k].src}" alt="" loading="lazy" decoding="async" />` : FALLBACK)
+  return ICONS[k] ?? EXTRA[k] ?? (RASTER[k] ? `<img src="${RASTER[k].src}" alt="" loading="lazy" decoding="async" />` : FALLBACK)
 }
 
 interface Props {

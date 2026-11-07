@@ -68,11 +68,13 @@ _TASK_FALLBACK_LABEL = {
     "trae_checkin": "签到领取积分",
     "qoder_checkin": "签到领取权益",
     "loomy_checkin": "签到领取每日积分（5000）",
+    "wps_lingxi_checkin": "签到领取灵犀智点",
     "refresh_quota": "刷新额度",
     # 各平台的会话保活（token 续期）：不需要每天做，按小时跑即可。
     "trae_keepalive": "会话保活",
     "qoder_keepalive": "会话保活",
     "loomy_keepalive": "会话保活",
+    "wps_lingxi_keepalive": "会话保活",
 }
 TASK_LABELS = {
     "refresh_balances": "刷新平台总积分",
