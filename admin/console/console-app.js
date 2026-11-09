@@ -7209,6 +7209,41 @@ async function healthCheckAll() {
 }
 async function toggleAcc(id,st){ await api("/api/accounts/"+id,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({status:st})}); loadAccounts(); }
 async function delAcc(id){ if(!await uiConfirm({message:"确认删除该账号？", title:"删除账号"}))return; const r=await api("/api/accounts/"+id,{method:"DELETE"}); toast(r.ok?"已删除":"删除失败",r.ok?"ok":"err"); if(r.ok) loadAccounts(); }
+
+/**
+ * 批量删除：把勾选的账号一次性提交，逐条回报结果。
+ *
+ * 为什么不沿用「删一条发一个请求」：几百个号就是几百次往返、几百次事务提交，
+ * 中途断网还会留下「删了一半」却说不清删了什么的状态。这里一次 POST 交完，
+ * 服务端在**同一个事务**里删，返回哪些删了、哪些被挡下、哪些已不存在。
+ *
+ * 已绑定 API Key 的账号由服务端跳过（单条删除也是这个规则），前端只负责把
+ * 跳过原因如实显示出来，不假装全成功。
+ */
+async function batchDeleteSelected() {
+  const ids = accSelectedIds();
+  if (!ids.length) { toast('请先在账号列表勾选要删除的账号', 'err'); return; }
+  if (!await uiConfirm({
+    kind: 'danger', danger: true,
+    title: '批量删除账号',
+    message: `确认删除已勾选的 ${ids.length} 个账号？\n\n删除后不可恢复。已绑定 API Key 的账号会被自动跳过。`,
+    okText: `删除 ${ids.length} 个`,
+  })) return;
+
+  const r = await api('/api/accounts/batch-delete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids }),
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) { toast('批量删除失败：' + (d.detail || r.status), 'err'); return; }
+
+  const parts = [`已删除 ${d.deleted || 0} 个`];
+  if (d.blocked && d.blocked.length) parts.push(`跳过 ${d.blocked.length} 个（已绑 API Key）`);
+  if (d.missing && d.missing.length) parts.push(`${d.missing.length} 个已不存在`);
+  toast(parts.join('，'), d.ok ? 'ok' : 'warn');
+  loadAccounts();
+}
 async function injectAcc(id){
   if(!await uiConfirm({kind:"warn", danger:false, title:"注入本机客户端",
       message:"确认把该账号注入到本机 WorkBuddy 客户端？\n会先自动备份当前活动登录态（*.bak-时间戳）。", okText:"确认注入"})) return;

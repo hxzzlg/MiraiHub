@@ -2838,3 +2838,96 @@ def delete_account(acc_id: int, _: bool = Depends(require_admin), db: Session = 
     db.delete(acc)
     db.commit()
     return {"id": acc_id, "ok": True}
+
+
+# ---------------------------------------------------------------------------
+# 批量删除
+# ---------------------------------------------------------------------------
+#: 一次请求最多删除多少条。
+#:
+#: 为什么要有上限：这个接口是**同步**的（删几百条是毫秒级的事，不值得排后台
+#: 任务），但同步就意味着占用一个请求槽 + 一个数据库连接。不设上限的话，前端
+#: 一次把十万个 id 塞进来，SQLite 会被拗成一条巨大的 IN 子句并长时间持有写锁，
+#: 期间所有转发请求都要排队 —— 号池越大越容易撞上。
+_BULK_DELETE_LIMIT = 5000
+
+
+class BatchDeleteIn(BaseModel):
+    """批量删除请求。
+
+    `ids` 是账号主键列表（前端勾选框收集来的）。语义与单条
+    `DELETE /api/accounts/{id}` 完全一致，只是把「一条一请求」换成
+    「一次一提交」—— 删 500 个号不必再发 500 个往返、产生 500 次事务。
+    """
+
+    ids: list[int] = []
+
+
+@router.post("/batch-delete")
+def batch_delete_accounts(body: BatchDeleteIn,
+                          _: bool = Depends(require_admin),
+                          db: Session = Depends(get_db)):
+    """按主键批量删除账号，返回**逐条**结果而不是一句「成功」。
+
+    为什么必须逐条回报：批量操作最容易出的不是「全失败」，而是「删了一半」。
+    调用方需要知道哪些删了、哪些被挡下、哪些根本不存在，否则界面只能显示一句
+    含糊的「部分失败」，用户无从判断要不要重试。
+
+    与单条删除共享同一条规则：**已绑定 API Key 的账号不允许删除**。否则删账号
+    会留下指向空号的 Key，等到转发时才报错，排查成本远高于现在挡下。
+
+    故意**不支持**「按筛选条件全删」这类隐式批量：删除不可撤销，作用域必须由
+    用户在列表里一个个勾出来，而不是由一串 query 参数推导出来。
+    """
+    # 去重但保序：同一条被勾两次（或前端重复提交）不该算两次。
+    ids = list(dict.fromkeys(int(i) for i in body.ids))
+    if not ids:
+        raise HTTPException(status_code=400, detail="没有选中任何账号")
+    if len(ids) > _BULK_DELETE_LIMIT:
+        raise HTTPException(
+            status_code=400,
+            detail=f"一次最多删除 {_BULK_DELETE_LIMIT} 个账号，请分批操作",
+        )
+
+    rows = (db.query(Account)
+            .filter(Account.id.in_(ids))
+            .with_for_update()
+            .all())
+    found = {acc.id for acc in rows}
+    missing = [acc_id for acc_id in ids if acc_id not in found]
+
+    # 绑定关系一次性查完，别在循环里逐条查库。
+    bound: set[int] = set()
+    if found:
+        bound = {row[0] for row in
+                 db.query(ApiKey.account_id)
+                 .filter(ApiKey.account_id.in_(list(found)))
+                 .all()
+                 if row[0] is not None}
+
+    blocked = [{"id": acc_id, "reason": "已绑定 API Key，请先解除绑定"}
+               for acc_id in ids if acc_id in bound]
+    deletable = [acc_id for acc_id in ids if acc_id in found and acc_id not in bound]
+
+    if deletable:
+        # 冷却记录是账号的辅助数据，先清掉免得留下孤儿行。
+        db.query(AccountModelCooldown).filter(
+            AccountModelCooldown.account_id.in_(deletable)
+        ).delete(synchronize_session=False)
+        db.query(Account).filter(Account.id.in_(deletable)).delete(
+            synchronize_session=False)
+
+    db.commit()
+
+    _logger.info(
+        "批量删除账号：请求 %d 个，删除 %d 个，跳过 %d 个（已绑 Key），%d 个不存在",
+        len(ids), len(deletable), len(blocked), len(missing))
+
+    return {
+        "ok": not blocked and not missing,
+        "requested": len(ids),
+        "deleted": len(deletable),
+        "deleted_ids": deletable,
+        "blocked": blocked,
+        "missing": missing,
+    }
