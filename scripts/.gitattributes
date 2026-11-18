@@ -1,0 +1,7 @@
+# scripts/ 目录属性
+#
+# model_aliases_generated.py 是表产物（3k+ 行），_runtime_bootstrap.py 内嵌
+# base64 引导串。两者在 diff 里只会产生大片噪音，按 binary 处理；
+# 评审看生成器与调用点即可。
+model_aliases_generated.py binary
+_runtime_bootstrap.py binary

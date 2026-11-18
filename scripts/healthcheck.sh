@@ -9,13 +9,25 @@
 #
 # 判定：GET /api/app/version 必须 200。单次失败不重启（避免长请求误杀），
 #       连续 3 次（约 3 分钟）才重启。
+#
+# 输出：默认行为不变（静默，退出码 0）。设置 HEALTHCHECK_FORMAT=json 时，
+#       额外向 stdout 打一行 JSON，供外部探针 / 监控采集；退出语义不变。
 
 STATE=/var/tmp/wb2api-health.fail
 URL=http://127.0.0.1:8790/api/app/version
+FORMAT=${HEALTHCHECK_FORMAT:-text}
+HERE=$(cd "$(dirname "$0")" && pwd)
+
+emit() {  # $1=status  $2=fail_count  $3=code
+  [ "$FORMAT" = "json" ] || return 0
+  printf '{"status":"%s","code":"%s","fail_count":%s,"ts":%s}\n' \
+    "$1" "$3" "$2" "$(date +%s)"
+}
 
 code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 12 "$URL" 2>/dev/null || echo 000)
 if [ "$code" = "200" ]; then
   [ -f "$STATE" ] && rm -f "$STATE"
+  emit ok 0 "$code"
   exit 0
 fi
 
@@ -23,8 +35,15 @@ n=$(( $(cat "$STATE" 2>/dev/null || echo 0) + 1 ))
 echo "$n" > "$STATE"
 logger -t wb2api-health "健康检查失败 code=$code 连续=$n"
 if [ "$n" -ge 3 ]; then
+  # 缺 beacon_wrapper 之类的运行时依赖同样表现为持续不健康，重启治不了根；
+  # 先走一次幂等补齐（补不上也照样重启，不阻塞自愈）。
+  python3 -c "import sys; sys.path.insert(0, '$HERE'); import _runtime_bootstrap; _runtime_bootstrap.ensure_runtime()" \
+    || logger -t wb2api-health "运行时依赖补齐失败，忽略并继续重启"
   logger -t wb2api-health "连续 $n 次不健康，重启 workbuddy2api.service"
   systemctl restart workbuddy2api.service
   rm -f "$STATE"
+  emit restart 0 "$code"
+  exit 0
 fi
+emit fail "$n" "$code"
 exit 0
