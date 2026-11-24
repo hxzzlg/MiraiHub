@@ -12193,6 +12193,26 @@ async function loadShareInfo() {
           }).join("")
         : '<span class="text-xs text-slate-400">未配置模型白名单（放行全部模型）</span>';
       // 复制事件由 document 上的委派处理器统一接管（见 copyRawText 附近的说明）
+
+      // 模型标签云折叠/展开按钮（#shareModels 超过 5 行时，CSS max-height 生效）
+      // 只在内容足够多时才注入，避免空状态也显示按钮。
+      if (box && groups.length > 20) {
+        // 移除可能已有的旧按钮（防止刷新时重复注入）
+        const old = box.parentNode && box.parentNode.querySelector('.share-models-toggle');
+        if (old) old.remove();
+        const toggle = document.createElement('button');
+        toggle.className = 'share-models-toggle';
+        toggle.dataset.expanded = '';
+        toggle.innerHTML = '<svg style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg> 展开全部 ' + groups.length + ' 个模型';
+        toggle.addEventListener('click', function() {
+          const expanded = box.classList.toggle('expanded');
+          this.dataset.expanded = expanded ? '1' : '';
+          this.innerHTML = expanded
+            ? '<svg style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></svg> 收起'
+            : '<svg style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg> 展开全部 ' + groups.length + ' 个模型';
+        });
+        box.after(toggle);
+      }
     }
   } catch (e) {}
 }

@@ -429,3 +429,116 @@ hr,
 :root[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
   background:var(--fg-subtle);
 }
+
+/* ============================================================================
+   UI 优化补丁 2024-11 — 四处视觉改进
+   ============================================================================
+
+   1. 侧边栏激活态：左侧色条 + 加强背景，替换原来几乎不可见的 translateX(2px)
+   2. topbar "复制 API 地址" 按钮：品牌色描边，与普通操作按钮区分层级
+   3. 日志筛选统计行（#logStats）：加视觉强调容器，不再和内容区融合
+   4. 模型标签云（#shareModels）：超过 5 行时折叠，防止 87 个标签撑开页面
+
+   全部写在此文件，不动 console.css / index.html / JS。
+   ========================================================================== */
+
+/* ── 1. 侧边栏激活态：左侧 3px 色条 + 轻底色 ───────────────────────────── */
+/* 原规则：background + translateX(2px) + 轻阴影。
+   translateX 在深色模式下几乎看不到；白底卡片 background 在暗底上也无对比。
+   改法：左侧 border + 更明显底色，同时保留原有 hover 过渡。 */
+.side-item.active {
+  /* 覆盖原 translateX(2px) —— 换成左侧色条 */
+  transform: none;
+  border-left: 3px solid var(--brand);
+  padding-left: calc(0px);   /* 补偿 3px border 占位，保持文字不移位 */
+  background: rgba(var(--brand-rgb), .07);
+  box-shadow: none;
+}
+:root[data-theme="dark"] .side-item.active {
+  background: rgba(var(--brand-rgb), .12);
+}
+/* hover 状态不带色条，仍保持轻柔 */
+.side-item:not(.active):hover {
+  background: rgba(var(--brand-rgb), .04);
+}
+
+/* ── 2. topbar 复制 API 地址按钮：品牌描边 ──────────────────────────────── */
+/* 原规则：所有 .topbar-actions button 样式一致（border: 1px solid var(--border)）。
+   "复制 API 地址" 是用户最常用的功能按钮，应有更高视觉权重。
+   加品牌色细描边 + 轻软色背景，让它从刷新/更新按钮里跳出来。 */
+.topbar-endpoint {
+  border-color: rgba(var(--brand-rgb), .45) !important;
+  color: var(--brand-ink) !important;
+  background: rgba(var(--brand-rgb), .05) !important;
+}
+.topbar-endpoint:hover {
+  border-color: var(--brand) !important;
+  background: rgba(var(--brand-rgb), .10) !important;
+}
+:root[data-theme="dark"] .topbar-endpoint {
+  border-color: rgba(var(--brand-rgb), .35) !important;
+  background: rgba(var(--brand-rgb), .08) !important;
+}
+
+/* ── 3. 日志筛选统计行：加强对比度，不再和下面表格融合 ──────────────────── */
+/* #logStats 由 JS 写入，内容形如「当前筛选 · 共 N 次 · 成功 M 次 · 错误 K 次」。
+   原来没有样式，直接是正文色灰字，和下面的卡片连成一片、扫视时找不到。
+   改成带左边框 + 轻底色的"摘要条"。 */
+#logStats:not(:empty) {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border-left: 3px solid var(--brand);
+  background: rgba(var(--brand-rgb), .05);
+  font-size: 12px;
+  color: var(--fg-muted);
+  line-height: 1.6;
+}
+/* 筛选结果里的"错误"数量会被 JS 渲染成 .text-red-500 / 橙色，
+   不需要在这里额外处理颜色 —— 只是把整行放进一个可见容器里 */
+
+/* ── 4. 模型标签云：超出 5 行时折叠 ────────────────────────────────────── */
+/* #shareModels 展示 87 个以上的 chip，把页面推出约 300px。
+   用 max-height + overflow:hidden 实现折叠；
+   用相邻的 .share-models-toggle（下面在 CSS 里定义默认隐藏，
+   由 JS/HTML 控制显示）切换展开状态。
+   如果页面没有 toggle 按钮，单纯限高 + 渐变遮罩也能提示有更多内容。 */
+#shareModels {
+  max-height: 108px;   /* 约 5 行 chip（每行 ~20px + gap 1.5px） */
+  overflow: hidden;
+  position: relative;
+  transition: max-height .3s var(--ease-out, cubic-bezier(.38,0,.24,1));
+}
+#shareModels.expanded {
+  max-height: 2000px;  /* 展开：足够高，不超过实际内容 */
+}
+/* 折叠时在底部加渐变遮罩，提示"下面还有内容" */
+#shareModels:not(.expanded)::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 36px;
+  background: linear-gradient(to bottom, transparent, var(--surface));
+  pointer-events: none;
+}
+/* 展开/折叠按钮——由 JS 添加到 #shareModels 后面，这里只定义样式 */
+.share-models-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--brand-ink);
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: background .12s;
+}
+.share-models-toggle:hover {
+  background: rgba(var(--brand-rgb), .08);
+}
